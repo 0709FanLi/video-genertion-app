@@ -1,0 +1,67 @@
+---
+alwaysApply: true
+---
+### 企业级Python开发规则（针对AI编辑器代码生成）
+
+规则分为几个类别，AI生成代码时必须严格遵循。每个规则后，我添加了“AI提示示例”，以指导你如何在AI编辑器中输入提示来强制执行这些规则。
+
+#### 1. **代码风格与命名规范**
+   - **PEP 8遵守**：代码使用4空格缩进，行长不超过79字符。导入语句按标准库、第三方库、自定义模块顺序分组，并用空行分隔。字符串优先使用单引号，除非包含单引号。
+   - **命名规则**：类名使用CamelCase（如`UserService`），函数/变量使用snake_case（如`create_user`）。常量全大写（如`DEFAULT_TIMEOUT`）。命名要描述性强，避免缩写（如用`database_session`而非`db_sess`）。
+   - **类型提示**：所有函数、方法和变量必须添加类型注解（使用`typing`模块，如`def get_user(user_id: int) -> UserSchema:`）。
+   - **格式化**：生成的代码应兼容Black工具自动格式化。避免手动调整缩进。
+   - **AI提示示例**： “生成一个FastAPI路由函数，遵守PEP 8，使用snake_case命名，添加完整类型提示：创建一个用户创建接口。”
+
+#### 2. **模块化与架构原则**
+   - **分层严格**：生成的代码必须遵守目录结构的分层（如API层仅处理路由，服务层处理逻辑，模型层定义数据）。不允许在API层直接访问数据库或调用外部API。
+   - **单一职责**：每个函数/方法只做一件事。服务层方法原子化，避免超过50行代码。
+   - **依赖注入**：使用FastAPI的`Depends`注入依赖（如数据库会话）。禁止使用全局变量。
+   - **大模型API集成**：调用外部大模型（如OpenAI）时，必须在`llm_service.py`中封装，使用`httpx`异步请求，添加重试机制（使用`tenacity`库）和错误处理。
+   - **可扩展性**：使用抽象类或接口定义服务（如`from abc import ABC, abstractmethod`），便于未来替换组件。
+   - **AI提示示例**： “在services/business_service.py中生成一个调用OpenAI API的函数，遵守单一职责原则，使用依赖注入和异步httpx，添加重试逻辑。”
+
+#### 3. **错误处理与日志**
+   - **异常处理**：使用自定义异常类（如继承`Exception`定义`ApiError`）。捕获特定异常，并转换为HTTP响应（如`raise HTTPException(status_code=400)`）。
+   - **日志集成**：每个关键操作（如API调用、数据库查询）添加日志，使用`logging`模块的INFO级别。日志消息结构化（如`logger.info("User created: %s", user_id)`），避免打印敏感数据。
+   - **AI提示示例**： “生成一个数据库查询函数，添加自定义异常处理和结构化日志，使用logging.info记录操作细节。”
+
+#### 4. **数据库与数据管理**
+   - **ORM规范**：使用SQLAlchemy定义模型，添加表约束（如`Column(String, unique=True)`）。所有操作在事务中（使用`with session.begin()`）。
+   - **数据验证**：输入使用Pydantic模型验证。输出序列化时使用`model_dump()`。
+   - **性能考虑**：避免N+1查询，使用`selectinload`预加载关系。分页使用`limit`和`offset`。
+   - **数据安全**：密码等敏感字段使用`hashlib`或`bcrypt`加密。查询参数化防止SQL注入。
+   - **AI提示示例**： “生成一个SQLAlchemy用户模型和对应的Pydantic schema，添加唯一约束和密码哈希处理，确保分页支持。”
+
+#### 5. **安全规范**
+   - **认证授权**：集成JWT认证（使用`PyJWT`）。服务层检查权限（如`if not user.is_admin: raise PermissionError`）。
+   - **输入 sanitization**：使用`bleach`清理用户输入，防范XSS。API参数验证使用Pydantic的`Field`约束。
+   - **秘密管理**：凭证从环境变量加载（如`os.getenv("API_KEY")`），不允许硬编码。
+   - **率限与防护**：添加FastAPI middleware实现率限（如`@limiter.limit("5/minute")`）。
+   - **AI提示示例**： “生成一个JWT认证服务函数，使用PyJWT，检查权限，并从环境变量加载密钥。”
+
+#### 6. **测试规范**
+   - **测试生成**：AI应同时生成对应测试代码（如使用`pytest`）。单元测试mock依赖，集成测试使用`TestClient`。
+   - **覆盖要求**：每个生成的函数至少有一个happy path和一个error path测试。
+   - **AI提示示例**： “生成user_service.py的create_user函数，并生成对应的pytest单元测试，包括mock数据库。”
+
+#### 7. **文档与注释**
+   - **Docstring**：每个模块、类、函数添加Google风格docstring，描述参数、返回和异常。
+   - **注释**：仅用于复杂逻辑解释，不用于明显代码。保持简洁。
+   - **AI提示示例**： “生成一个业务逻辑函数，添加完整的Google风格docstring，包括参数类型和异常描述。”
+
+#### 8. **性能与优化**
+   - **异步优先**：API和外部调用使用`async def`和`await`。
+   - **缓存集成**：热点数据添加Redis缓存钩子。
+   - **资源管理**：使用`with`语句管理资源（如文件、会话）。
+   - **AI提示示例**： “生成一个异步数据库查询函数，使用await，并添加缓存逻辑预留。”
+
+#### 9. **版本控制与协作**
+   - **Commit友好**：生成的代码模块化，便于小PR。避免大文件。
+   - **依赖锁定**：在代码中指定库版本（如`import httpx  # version >=1.0`），但实际通过requirements.txt管理。
+   - **AI提示示例**： “生成一个新服务模块，确保代码模块化，便于版本控制。”
+
+#### 10. **AI编辑器特定指南**
+   - **提示优化**：在AI提示中始终包含“遵守企业级Python规则，包括PEP 8、类型提示和分层架构”。
+   - **审查流程**：AI生成后，手动运行Black、mypy和pytest检查。
+   - **迭代生成**：从小片段开始生成（如先函数签名，再实现），逐步构建。
+   - **避免常见AI陷阱**：禁止生成无限循环、未处理异常或不安全的代码（如`eval()`）。

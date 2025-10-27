@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+每一次任务完成都需要调用mcp-feedback-enhanced确认，在得到明显的结束用语，比如“可以了”，“结束”，“关闭”等才可关闭会话
