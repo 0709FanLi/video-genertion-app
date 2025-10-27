@@ -1,0 +1,94 @@
+INFO:     Started server process [10533]
+INFO:     Waiting for application startup.
+2025-10-24 18:16:04,167 - app.main - INFO - AI视频创作工作流系统 v1.0.0 启动中...
+2025-10-24 18:16:04,168 - app.main - INFO - 调试模式: False
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:64052 - "GET /health HTTP/1.1" 200 OK
+2025-10-24 18:17:04,810 - LLMService - INFO - LLMService初始化完成
+2025-10-24 18:17:04,811 - app.api.routes.generation - INFO - 收到图片提示词生成请求，想法: 一只戴墨镜的橘猫躺在沙滩上
+2025-10-24 18:17:04,811 - LLMService - INFO - 生成图片提示词，用户想法: 一只戴墨镜的橘猫躺在沙滩上
+2025-10-24 18:17:04,811 - LLMService - INFO - 调用通义千问API
+2025-10-24 18:17:12,875 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-24 18:17:12,892 - LLMService - INFO - 通义千问API调用成功
+2025-10-24 18:17:12,892 - LLMService - INFO - 成功生成3个图片提示词
+INFO:     127.0.0.1:64326 - "POST /api/generate-image-prompts HTTP/1.1" 200 OK
+2025-10-24 18:17:16,071 - WanxService - INFO - WanxService初始化完成
+2025-10-24 18:17:16,073 - app.api.routes.generation - INFO - 收到图片生成请求，提示词长度: 413
+2025-10-24 18:17:16,073 - WanxService - INFO - 开始生成图片，提示词长度: 413，数量: 4
+2025-10-24 18:17:16,073 - WanxService - INFO - 创建异步任务: /services/aigc/text2image/image-synthesis
+2025-10-24 18:17:16,292 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis "HTTP/1.1 200 OK"
+2025-10-24 18:17:16,293 - WanxService - INFO - 任务创建成功，任务ID: 918817bd-73b9-45dc-8178-29ba2be76619
+2025-10-24 18:17:16,294 - WanxService - INFO - 开始轮询任务: 918817bd-73b9-45dc-8178-29ba2be76619
+2025-10-24 18:17:16,448 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/918817bd-73b9-45dc-8178-29ba2be76619 "HTTP/1.1 200 OK"
+2025-10-24 18:17:21,597 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/918817bd-73b9-45dc-8178-29ba2be76619 "HTTP/1.1 200 OK"
+2025-10-24 18:17:26,914 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/918817bd-73b9-45dc-8178-29ba2be76619 "HTTP/1.1 200 OK"
+2025-10-24 18:17:32,060 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/918817bd-73b9-45dc-8178-29ba2be76619 "HTTP/1.1 200 OK"
+2025-10-24 18:17:37,217 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/918817bd-73b9-45dc-8178-29ba2be76619 "HTTP/1.1 200 OK"
+2025-10-24 18:17:42,368 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/918817bd-73b9-45dc-8178-29ba2be76619 "HTTP/1.1 200 OK"
+2025-10-24 18:17:47,520 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/918817bd-73b9-45dc-8178-29ba2be76619 "HTTP/1.1 200 OK"
+2025-10-24 18:17:47,521 - WanxService - INFO - 任务918817bd-73b9-45dc-8178-29ba2be76619执行成功
+2025-10-24 18:17:47,522 - WanxService - INFO - 图片生成完成，任务ID: 918817bd-73b9-45dc-8178-29ba2be76619
+INFO:     127.0.0.1:64376 - "POST /api/generate-images HTTP/1.1" 200 OK
+2025-10-24 18:18:46,515 - WanxService - INFO - WanxService初始化完成
+2025-10-24 18:18:46,518 - app.api.routes.generation - INFO - 收到视频生成请求，图片: https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/1d/e7/20251024/c70535fc/661171ba-d593-4240-8a66-20c5fb296cdc-1.png?Expires=1761387464&OSSAccessKeyId=LTAI5tQZd8AEcZX6KZV4G8qL&Signature=TkWeltgVEAkm5WsB5rajWX6SkNE%3D, 提示词长度: 6
+2025-10-24 18:18:46,518 - WanxService - INFO - 开始生成视频，图片URL: https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/1d/e7/20251024/c70535fc/661171ba-d593-4240-8a66-20c5fb296cdc-1.png?Expires=1761387464&OSSAccessKeyId=LTAI5tQZd8AEcZX6KZV4G8qL&Signature=TkWeltgVEAkm5WsB5rajWX6SkNE%3D, 提示词长度: 6
+2025-10-24 18:18:46,519 - WanxService - INFO - 创建异步任务: /services/aigc/video-generation/video-synthesis
+2025-10-24 18:18:47,345 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis "HTTP/1.1 200 OK"
+2025-10-24 18:18:47,347 - WanxService - INFO - 任务创建成功，任务ID: f2997912-329b-4261-bf84-58cbf77b06e0
+2025-10-24 18:18:47,347 - WanxService - INFO - 开始轮询任务: f2997912-329b-4261-bf84-58cbf77b06e0
+2025-10-24 18:18:47,525 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:18:52,683 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:18:57,851 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:19:02,992 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:19:08,150 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:19:13,308 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:19:18,637 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:19:23,816 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:19:28,993 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:19:34,154 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:19:39,312 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:19:44,466 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:19:49,617 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:19:54,781 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:19:59,944 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:20:05,087 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:20:10,238 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:20:15,384 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:20:20,528 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:20:25,679 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:20:30,855 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:20:35,993 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:20:41,157 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:20:46,311 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:20:51,475 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:20:56,604 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:21:01,763 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/f2997912-329b-4261-bf84-58cbf77b06e0 "HTTP/1.1 200 OK"
+2025-10-24 18:21:01,764 - WanxService - INFO - 任务f2997912-329b-4261-bf84-58cbf77b06e0执行成功
+2025-10-24 18:21:01,764 - WanxService - INFO - 视频生成完成，任务ID: f2997912-329b-4261-bf84-58cbf77b06e0
+INFO:     127.0.0.1:64843 - "POST /api/generate-video HTTP/1.1" 200 OK
+2025-10-25 06:16:55,328 - LLMService - INFO - LLMService初始化完成
+2025-10-25 06:16:55,330 - app.api.routes.generation - INFO - 收到图片提示词生成请求，想法: 一只戴墨镜的狸花猫，躺在沙滩上，写实风格，逼真，使用中文优化提示词
+2025-10-25 06:16:55,330 - LLMService - INFO - 生成图片提示词，用户想法: 一只戴墨镜的狸花猫，躺在沙滩上，写实风格，逼真，使用中文优化提示词
+2025-10-25 06:16:55,330 - LLMService - INFO - 调用通义千问API
+2025-10-25 06:17:13,200 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-25 06:17:13,207 - LLMService - INFO - 通义千问API调用成功
+2025-10-25 06:17:13,207 - LLMService - INFO - 成功生成3个图片提示词
+INFO:     127.0.0.1:64825 - "POST /api/generate-image-prompts HTTP/1.1" 200 OK
+2025-10-25 06:18:25,519 - WanxService - INFO - WanxService初始化完成
+2025-10-25 06:18:25,519 - app.api.routes.generation - INFO - 收到图片生成请求，提示词长度: 617
+2025-10-25 06:18:25,519 - WanxService - INFO - 开始生成图片，提示词长度: 617，数量: 4
+2025-10-25 06:18:25,520 - WanxService - INFO - 创建异步任务: /services/aigc/text2image/image-synthesis
+2025-10-25 06:18:25,750 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis "HTTP/1.1 200 OK"
+2025-10-25 06:18:25,751 - WanxService - INFO - 任务创建成功，任务ID: dcb7069e-e070-4c4a-b2f2-b5e3ee6fcb31
+2025-10-25 06:18:25,752 - WanxService - INFO - 开始轮询任务: dcb7069e-e070-4c4a-b2f2-b5e3ee6fcb31
+2025-10-25 06:18:25,929 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/dcb7069e-e070-4c4a-b2f2-b5e3ee6fcb31 "HTTP/1.1 200 OK"
+2025-10-25 06:18:31,089 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/dcb7069e-e070-4c4a-b2f2-b5e3ee6fcb31 "HTTP/1.1 200 OK"
+2025-10-25 06:18:36,252 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/dcb7069e-e070-4c4a-b2f2-b5e3ee6fcb31 "HTTP/1.1 200 OK"
+2025-10-25 06:18:41,414 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/dcb7069e-e070-4c4a-b2f2-b5e3ee6fcb31 "HTTP/1.1 200 OK"
+2025-10-25 06:18:46,582 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/dcb7069e-e070-4c4a-b2f2-b5e3ee6fcb31 "HTTP/1.1 200 OK"
+2025-10-25 06:18:51,730 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/dcb7069e-e070-4c4a-b2f2-b5e3ee6fcb31 "HTTP/1.1 200 OK"
+2025-10-25 06:18:56,883 - httpx - INFO - HTTP Request: GET https://dashscope.aliyuncs.com/api/v1/tasks/dcb7069e-e070-4c4a-b2f2-b5e3ee6fcb31 "HTTP/1.1 200 OK"
+2025-10-25 06:18:56,885 - WanxService - INFO - 任务dcb7069e-e070-4c4a-b2f2-b5e3ee6fcb31执行成功
+2025-10-25 06:18:56,885 - WanxService - INFO - 图片生成完成，任务ID: dcb7069e-e070-4c4a-b2f2-b5e3ee6fcb31
+INFO:     127.0.0.1:65257 - "POST /api/generate-images HTTP/1.1" 200 OK

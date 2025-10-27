@@ -1,0 +1,95 @@
+---
+alwaysApply: false
+---
+
+project_name/  # 项目根目录，项目名为你的业务名称，如 "ai_business_api"
+├── src/  # 源代码主目录
+│   ├── main.py  # 应用入口文件（启动FastAPI服务器）
+│   ├── api/  # API接口层，为前端提供RESTful接口
+│   │   ├── __init__.py
+│   │   ├── routers/  # 路由模块，按业务分组
+│   │   │   ├── __init__.py
+│   │   │   ├── auth.py  # 认证相关接口（如JWT登录）
+│   │   │   ├── users.py  # 用户管理接口
+│   │   │   └── business.py  # 核心业务接口（使用AI编辑器开发的逻辑）
+│   │   └── dependencies.py  # 依赖注入（如数据库会话、API密钥）
+│   ├── services/  # 服务层，业务逻辑核心（调用数据库和大模型API）
+│   │   ├── __init__.py
+│   │   ├── auth_service.py  # 认证服务
+│   │   ├── user_service.py  # 用户服务
+│   │   ├── business_service.py  # 业务服务（集成AI逻辑、调用外部大模型）
+│   │   └── llm_service.py  # 大模型调用服务（封装OpenAI/Hugging Face API）
+│   ├── models/  # 数据模型层（数据库模型和Pydantic模型）
+│   │   ├── __init__.py
+│   │   ├── database.py  # 数据库连接和会话管理（SQLAlchemy引擎）
+│   │   ├── schemas/  # Pydantic schemas（API请求/响应模型）
+│   │   │   ├── __init__.py
+│   │   │   ├── user.py
+│   │   │   └── business.py
+│   │   └── tables/  # SQLAlchemy ORM模型（数据库表定义）
+│   │       ├── __init__.py
+│   │       ├── user.py
+│   │       └── business.py
+│   ├── utils/  # 工具模块（通用函数）
+│   │   ├── __init__.py
+│   │   ├── logging.py  # 日志配置（企业级日志记录）
+│   │   ├── exceptions.py  # 自定义异常处理
+│   │   └── helpers.py  # 辅助函数（如日期处理、加密）
+│   └── config/  # 配置模块（从环境变量加载）
+│       ├── __init__.py
+│       └── settings.py  # 配置类（数据库URL、API密钥等）
+├── tests/  # 测试目录（使用pytest）
+│   ├── __init__.py
+│   ├── conftest.py  # 测试 fixture（如数据库mock）
+│   ├── unit/  # 单元测试
+│   │   └── test_services.py
+│   └── integration/  # 集成测试（API和数据库）
+│       └── test_api.py
+├── docs/  # 文档目录
+│   ├── api.md  # API文档（可使用Swagger生成）
+│   └── architecture.md  # 项目架构说明
+├── scripts/  # 脚本目录（部署、迁移等）
+│   ├── migrate_db.py  # 数据库迁移脚本（使用Alembic）
+│   └── deploy.sh  # 部署脚本（Docker或Kubernetes）
+├── .env  # 环境变量文件（数据库凭证、API密钥，不提交到Git）
+├── .gitignore  # Git忽略文件
+├── README.md  # 项目说明（安装、运行指南）
+├── requirements.txt  # 依赖列表（pip install -r requirements.txt）
+├── setup.py  # (可选) 用于打包项目
+└── pyproject.toml  # (可选) Poetry或现代构建配置
+```
+
+#### 目录规则制定
+为了确保目录结构可读、可维护和企业级，我制定了以下规则。这些规则基于Python PEP 8、Clean Architecture和12-Factor App原则，强调一致性、模块化和安全性。使用AI编辑器开发时，这些规则能帮助AI工具更好地理解上下文，提高代码生成效率。
+
+1. **命名一致性**：
+   - 目录和文件使用小写字母和下划线（snake_case），如`business_service.py`。
+   - 模块按功能命名，避免泛化（如用`llm_service.py`而非`ai.py`，以明确调用大模型）。
+   - 避免缩写，除非标准（如`api/`、`db/`），优先全称以提高可读性。
+
+2. **分层架构**：
+   - `src/api/`：仅处理HTTP请求/响应（控制器层），不包含业务逻辑。使用FastAPI的路由器分组接口，按业务模块拆分（如用户、业务）。
+   - `src/services/`：核心业务逻辑层，包括数据库操作和大模型API调用。每个服务文件对应一个领域（如`business_service.py`处理AI编辑器生成的业务）。
+   - `src/models/`：数据定义层。`schemas/`用于API模型（Pydantic，确保类型安全）；`tables/`用于数据库ORM（SQLAlchemy，确保数据一致性）。
+   - `src/utils/`：通用工具，不依赖具体业务，便于复用。
+   - `src/config/`：配置隔离，使用`pydantic-settings`从`.env`加载敏感信息（如数据库URL、大模型API密钥），支持环境变量注入。
+
+3. **测试与文档分离**：
+   - `tests/`：所有测试文件以`test_`开头，按单元/集成分类。覆盖率目标>80%（企业级要求）。
+   - `docs/`：存放Markdown文档，包含API规格（使用FastAPI的OpenAPI自动生成）和架构图。定期更新以支持团队协作。
+
+4. **脚本与工具**：
+   - `scripts/`：存放非应用代码，如数据库迁移（Alembic集成SQLAlchemy）和部署脚本。便于CI/CD自动化。
+   - 根目录文件：仅放置全局配置，如`requirements.txt`（列出依赖：fastapi, uvicorn, sqlalchemy, pydantic, httpx用于调用大模型，alembic等）。
+
+5. **安全性与企业级实践**：
+   - 敏感数据（如数据库凭证、大模型API密钥）仅在`.env`中，不硬编码。使用`python-dotenv`加载。
+   - 支持容器化：添加`Dockerfile`在根目录（可选扩展）。
+   - 版本控制：`.gitignore`忽略`.env`、`__pycache__`等。
+   - 可扩展性：如果项目增长，可进一步子目录（如`services/integrations/`用于更多外部API）。
+   - 日志与监控：`utils/logging.py`配置结构化日志（JSON格式），集成Sentry或ELK栈。
+
+6. **使用AI编辑器开发的注意**：
+   - 每个文件开头添加docstring，描述模块目的，便于AI工具生成代码。
+   - 保持文件小（<500行），便于AI提示和审查。
+   - 在`business_service.py`中预留注释，标记AI生成的业务逻辑部分。
