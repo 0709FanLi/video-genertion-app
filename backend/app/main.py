@@ -10,7 +10,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import generation
+from app.api.routes import generation, text_to_image, file_upload
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
 from app.exceptions import ApiError
@@ -99,6 +99,10 @@ def create_app() -> FastAPI:
                 "detail": exc.detail
             }
         )
+    
+    # 注册路由
+    app.include_router(text_to_image.router)
+    app.include_router(file_upload.router)
     
     # 健康检查端点
     @app.get("/health", tags=["health"])

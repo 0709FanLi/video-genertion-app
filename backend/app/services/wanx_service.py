@@ -248,3 +248,7 @@ class WanxService(LoggerMixin):
         self.logger.info(f"视频生成完成，任务ID: {task_id}")
         return result
 
+
+# 全局服务实例
+wanx_service = WanxService()
+

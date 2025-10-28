@@ -105,8 +105,9 @@ class LLMService(LoggerMixin):
         
         system_prompt = (
             "你是一个专业的提示词工程师。"
-            "请将用户的想法扩展成3个详细的、用于AI绘画的英文提示词，"
+            "请将用户的想法扩展成3个详细的、用于AI绘画的中文提示词，"
             "包含场景描述、光线、画风、构图等细节，并以JSON格式返回。"
+            "重要：提示词必须使用中文，要详细且富有画面感。"
             "返回格式: {\"prompts\": [\"prompt1\", \"prompt2\", \"prompt3\"]}"
         )
         
@@ -146,8 +147,9 @@ class LLMService(LoggerMixin):
         
         system_prompt = (
             "你是一个专业的视频提示词工程师。"
-            "请将用户的想法优化成一个更专业的、细节丰富的视频动态描述提示词，"
+            "请将用户的想法优化成一个更专业的、细节丰富的中文视频动态描述提示词，"
             "并以JSON格式返回。"
+            "重要：提示词必须使用中文，要详细描述动态效果。"
             "返回格式: {\"optimised_prompt\": \"优化后的提示词\"}"
         )
         
@@ -168,4 +170,8 @@ class LLMService(LoggerMixin):
                 message="解析优化提示词失败",
                 detail=str(e)
             )
+
+
+# 全局服务实例
+llm_service = LLMService()
 
