@@ -8,8 +8,9 @@
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -18,6 +19,10 @@ from app.services.deepseek_service import deepseek_service
 from app.services.volc_jimeng_service import volc_jimeng_service
 from app.services.wanx_i2i_service import wanx_i2i_service
 from app.services.qwen_image_service import qwen_image_service
+from app.services.library_service import LibraryService
+from app.api.deps_auth import get_current_user
+from app.models.user import User
+from app.database.session import get_db
 from app.exceptions.custom_exceptions import ApiError
 
 router = APIRouter(prefix="/api/text-to-image", tags=["text-to-image"])
@@ -105,7 +110,11 @@ async def get_models() -> ModelsListResponse:
     summary="优化提示词",
     description="使用AI模型优化用户输入的提示词，支持通义千问和DeepSeek"
 )
-async def optimize_prompt(request: PromptOptimizeRequest) -> PromptOptimizeResponse:
+async def optimize_prompt(
+    request: PromptOptimizeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> PromptOptimizeResponse:
     """优化提示词API.
     
     Args:
@@ -146,6 +155,16 @@ async def optimize_prompt(request: PromptOptimizeRequest) -> PromptOptimizeRespo
         
         logger.info(f"提示词优化成功: {optimized_prompt[:100]}...")
         
+        # 保存提示词历史
+        library_service = LibraryService(db)
+        library_service.save_prompt(
+            user_id=current_user.id,
+            original_prompt=request.prompt,
+            optimized_prompt=optimized_prompt,
+            optimization_model=request.model,
+            scene_type="text_to_image"
+        )
+        
         return PromptOptimizeResponse(
             original_prompt=request.prompt,
             optimized_prompt=optimized_prompt,
@@ -172,7 +191,11 @@ async def optimize_prompt(request: PromptOptimizeRequest) -> PromptOptimizeRespo
     summary="文本生成图片",
     description="根据提示词生成图片，支持多种模型和参考图功能"
 )
-async def generate_image(request: TextToImageRequest) -> TextToImageResponse:
+async def generate_image(
+    request: TextToImageRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> TextToImageResponse:
     """文本生成图片API.
     
     Args:
@@ -258,6 +281,18 @@ async def generate_image(request: TextToImageRequest) -> TextToImageResponse:
             )
         
         logger.info(f"文生图成功: 生成 {len(image_urls)} 张图片")
+        
+        # 保存生成的图片到用户图片库
+        library_service = LibraryService(db)
+        for image_url in image_urls:
+            library_service.save_image(
+                user_id=current_user.id,
+                image_url=image_url,
+                prompt=request.prompt,
+                model=request.model,
+                resolution=request.size,
+                generation_type="text_to_image"
+            )
         
         return TextToImageResponse(
             image_urls=image_urls,

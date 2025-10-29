@@ -1,0 +1,191 @@
+文本转视频生成
+选择一个示例，了解如何生成包含对话、电影级真实感或创意动画的视频：
+
+对话和音效 电影级真实感 创意动画
+
+Python
+JavaScript
+Go
+REST
+
+import time
+from google import genai
+from google.genai import types
+
+client = genai.Client()
+
+prompt = """Drone shot following a classic red convertible driven by a man along a winding coastal road at sunset, waves crashing against the rocks below.
+The convertible accelerates fast and the engine roars loudly."""
+
+operation = client.models.generate_videos(
+    model="veo-3.1-generate-preview",
+    prompt=prompt,
+)
+
+# Poll the operation status until the video is ready.
+while not operation.done:
+    print("Waiting for video generation to complete...")
+    time.sleep(10)
+    operation = client.operations.get(operation)
+
+# Download the generated video.
+generated_video = operation.response.generated_videos[0]
+client.files.download(file=generated_video.video)
+generated_video.video.save("realism_example.mp4")
+print("Generated video saved to realism_example.mp4")
+
+
+图片转视频生成
+以下代码演示了如何使用 Gemini 2.5 Flash Image（又称 Nano Banana）生成图片，然后将该图片用作起始帧，以使用 Veo 3.1 生成视频。
+
+Python
+JavaScript
+Go
+
+import time
+from google import genai
+
+client = genai.Client()
+
+prompt = "Panning wide shot of a calico kitten sleeping in the sunshine"
+
+# Step 1: Generate an image with Nano Banana.
+image = client.models.generate_content(
+    model="gemini-2.5-flash-image",
+    prompt=prompt,
+)
+
+# Step 2: Generate video with Veo 3.1 using the image.
+operation = client.models.generate_videos(
+    model="veo-3.1-generate-preview",
+    prompt=prompt,
+    image=image.generated_images[0].image,
+)
+
+# Poll the operation status until the video is ready.
+while not operation.done:
+    print("Waiting for video generation to complete...")
+    time.sleep(10)
+    operation = client.operations.get(operation)
+
+# Download the video.
+video = operation.response.generated_videos[0]
+client.files.download(file=video.video)
+video.video.save("veo3_with_image_input.mp4")
+print("Generated video saved to veo3_with_image_input.mp4")
+使用参考图片
+注意： 此功能仅适用于 Veo 3.1 型号
+Veo 3.1 现在最多可接受 3 张参考图片，以指导生成的视频的内容。提供人物、角色或产品的图片，以便在输出视频中保留该主题的外观。
+
+例如，使用 Nano Banana 生成的这三张图片作为参考，并搭配精心撰写的提示，即可生成以下视频：
+
+`dress_image`	`woman_image`	`glasses_image`
+高档火烈鸟连衣裙，饰有层层粉色和紫红色羽毛	一位美丽的女性，留着深色头发，有着暖棕色的眼睛	造型奇特的粉色心形太阳镜
+Python
+
+import time
+from google import genai
+
+client = genai.Client()
+
+prompt = "The video opens with a medium, eye-level shot of a beautiful woman with dark hair and warm brown eyes. She wears a magnificent, high-fashion flamingo dress with layers of pink and fuchsia feathers, complemented by whimsical pink, heart-shaped sunglasses. She walks with serene confidence through the crystal-clear, shallow turquoise water of a sun-drenched lagoon. The camera slowly pulls back to a medium-wide shot, revealing the breathtaking scene as the dress's long train glides and floats gracefully on the water's surface behind her. The cinematic, dreamlike atmosphere is enhanced by the vibrant colors of the dress against the serene, minimalist landscape, capturing a moment of pure elegance and high-fashion fantasy."
+
+dress_reference = types.VideoGenerationReferenceImage(
+  image=dress_image, # Generated separately with Nano Banana
+  reference_type="asset"
+)
+
+sunglasses_reference = types.VideoGenerationReferenceImage(
+  image=glasses_image, # Generated separately with Nano Banana
+  reference_type="asset"
+)
+
+woman_reference = types.VideoGenerationReferenceImage(
+  image=woman_image, # Generated separately with Nano Banana
+  reference_type="asset"
+)
+
+operation = client.models.generate_videos(
+    model="veo-3.1-generate-preview",
+    prompt=prompt,
+    config=types.GenerateVideosConfig(
+      reference_images=[dress_reference, glasses_reference, woman_reference],
+    ),
+)
+
+# Poll the operation status until the video is ready.
+while not operation.done:
+    print("Waiting for video generation to complete...")
+    time.sleep(10)
+    operation = client.operations.get(operation)
+
+# Download the video.
+video = operation.response.generated_videos[0]
+client.files.download(file=video.video)
+video.video.save("veo3.1_with_reference_images.mp4")
+print("Generated video saved to veo3.1_with_reference_images.mp4")
+
+
+使用第一帧和最后一帧
+注意： 此功能仅适用于 Veo 3.1 型号
+借助 Veo 3.1，您可以使用插值或指定视频的第一帧和最后一帧来创建视频。如需了解如何编写有效的文本提示来生成视频，请参阅 Veo 提示指南。
+
+Python
+
+import time
+from google import genai
+
+client = genai.Client()
+
+prompt = "A cinematic, haunting video. A ghostly woman with long white hair and a flowing dress swings gently on a rope swing beneath a massive, gnarled tree in a foggy, moonlit clearing. The fog thickens and swirls around her, and she slowly fades away, vanishing completely. The empty swing is left swaying rhythmically on its own in the eerie silence."
+
+operation = client.models.generate_videos(
+    model="veo-3.1-generate-preview",
+    prompt=prompt,
+    image=first_image, # Generated separately with Nano Banana
+    config=types.GenerateVideosConfig(
+      last_frame=last_image # Generated separately with Nano Banana
+    ),
+)
+
+# Poll the operation status until the video is ready.
+while not operation.done:
+    print("Waiting for video generation to complete...")
+    time.sleep(10)
+    operation = client.operations.get(operation)
+
+# Download the video.
+video = operation.response.generated_videos[0]
+client.files.download(file=video.video)
+video.video.save("veo3.1_with_interpolation.mp4")
+print("Generated video saved to veo3.1_with_interpolation.mp4")
+`first_image`	`last_image`	veo3.1_with_interpolation.mp4
+一位留着白色长发、身穿飘逸长裙的幽灵女子在绳索秋千上轻轻摇晃	幽灵般的女子从秋千上消失	一段电影般的诡异视频，画面中一位令人毛骨悚然的女性在雾中从秋千上消失
+、
+
+
+下载demo 
+
+import time
+from google import genai
+from google.genai import types
+
+client = genai.Client()
+
+operation = client.models.generate_videos(
+    model="veo-3.1-generate-preview",
+    prompt="A cinematic shot of a majestic lion in the savannah.",
+    config=types.GenerateVideosConfig(negative_prompt="cartoon, drawing, low quality"),
+)
+
+# Poll the operation status until the video is ready.
+while not operation.done:
+    print("Waiting for video generation to complete...")
+    time.sleep(10)
+    operation = client.operations.get(operation)
+
+# Download the generated video.
+generated_video = operation.response.generated_videos[0]
+client.files.download(file=generated_video.video)
+generated_video.video.save("parameters_example.mp4")
+print("Generated video saved to parameters_example.mp4")

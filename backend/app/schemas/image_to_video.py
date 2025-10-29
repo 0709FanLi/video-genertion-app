@@ -22,6 +22,7 @@ class VideoModel(str, Enum):
     WANX_KF2V_PLUS = "wanx-kf2v-plus"  # 万相2.1专业版
     
     # Google Veo 3.1模型
+    GOOGLE_VEO_T2V = "google-veo-t2v"  # 文生视频
     GOOGLE_VEO_I2V_FIRST = "google-veo-i2v-first"  # 单图首帧
     GOOGLE_VEO_I2V_FIRST_TAIL = "google-veo-i2v-first-tail"  # 首尾帧插值
 
@@ -37,7 +38,10 @@ class VideoResolution(str, Enum):
 class VideoDuration(int, Enum):
     """视频时长（秒）."""
     
+    FOUR_SECONDS = 4  # Google Veo支持
     FIVE_SECONDS = 5
+    SIX_SECONDS = 6   # Google Veo支持
+    EIGHT_SECONDS = 8 # Google Veo支持
     TEN_SECONDS = 10
 
 

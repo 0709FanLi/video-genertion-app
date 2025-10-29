@@ -2,15 +2,17 @@
  * 提示词输入组件
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, Input, Button, Space, Select, Switch, Tag, Tooltip } from 'antd';
 import { 
   ThunderboltOutlined, 
   SwapOutlined,
-  InfoCircleOutlined 
+  InfoCircleOutlined,
+  HistoryOutlined 
 } from '@ant-design/icons';
 import useImageStore from '../../store/imageStore';
 import { textToImageAPI } from '../../services/api';
+import LibraryModal from '../LibraryModal';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -31,6 +33,9 @@ const PromptInput = () => {
     setError,
     clearError
   } = useImageStore();
+  
+  // 资源库弹窗状态
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   
   // 优化提示词
   const handleOptimize = async () => {
@@ -69,7 +74,20 @@ const PromptInput = () => {
     ? optimizedPrompt 
     : userPrompt;
   
+  // 从资源库选择提示词
+  const handleSelectFromLibrary = (selection) => {
+    if (selection.type === 'prompt') {
+      const prompt = selection.data;
+      setUserPrompt(prompt.original_prompt || prompt.optimized_prompt);
+      if (prompt.optimized_prompt) {
+        setOptimizedPrompt(prompt.optimized_prompt);
+      }
+    }
+    setIsLibraryOpen(false);
+  };
+  
   return (
+    <>
     <Card 
       title={
         <Space>
@@ -127,6 +145,13 @@ const PromptInput = () => {
           >
             {isOptimizing ? '优化中...' : 'AI优化提示词'}
           </Button>
+          
+          <Button
+            icon={<HistoryOutlined />}
+            onClick={() => setIsLibraryOpen(true)}
+          >
+            历史记录
+          </Button>
         </Space>
         
         {/* 优化后的提示词 */}
@@ -175,6 +200,15 @@ const PromptInput = () => {
         )}
       </Space>
     </Card>
+    
+    {/* 资源库弹窗 */}
+    <LibraryModal 
+      isOpen={isLibraryOpen}
+      onClose={() => setIsLibraryOpen(false)}
+      onSelect={handleSelectFromLibrary}
+      selectMode="prompt"
+    />
+    </>
   );
 };
 

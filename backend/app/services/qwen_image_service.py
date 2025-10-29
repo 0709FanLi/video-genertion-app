@@ -190,7 +190,7 @@ class QwenImageService(LoggerMixin):
             except httpx.HTTPStatusError as e:
                 error_detail = e.response.text
                 self.logger.error(f"通义千问请求失败: {error_detail}")
-                raise ApiError("通义千问请求失败", details=error_detail)
+                raise ApiError("通义千问请求失败", detail=error_detail)
             except Exception as e:
                 self.logger.error(f"生成图片异常: {str(e)}")
                 raise

@@ -27,7 +27,6 @@ const VideoExtensionPage = () => {
     extendedVideo,
     selectedModel,
     aspectRatio,
-    negativePrompt,
     error,
     setExtending,
     setExtendedVideo,
@@ -90,8 +89,7 @@ const VideoExtensionPage = () => {
         video_url: originalVideo.url,
         prompt: getCurrentPrompt(),
         model: selectedModel,
-        aspect_ratio: aspectRatio,
-        negative_prompt: negativePrompt.trim() || null
+        aspect_ratio: aspectRatio
       };
       
       const result = await videoExtensionAPI.extendVideo(params);

@@ -11,6 +11,8 @@ import {
   HomeOutlined
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
+import UserMenu from '../UserMenu';
+import useAuthStore from '../../store/authStore';
 
 const { Header: AntHeader } = Layout;
 const { Title } = Typography;
@@ -18,6 +20,7 @@ const { Title } = Typography;
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
   
   // 导航菜单项
   const menuItems = [
@@ -80,6 +83,13 @@ const Header = () => {
           borderBottom: 'none'
         }}
       />
+      
+      {/* 用户菜单 */}
+      {isAuthenticated && (
+        <div style={{ marginLeft: 'auto' }}>
+          <UserMenu />
+        </div>
+      )}
     </AntHeader>
   );
 };

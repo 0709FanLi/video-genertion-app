@@ -7,9 +7,14 @@ import base64
 import io
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 
 from app.core.logging import LoggerMixin
+from app.api.deps_auth import get_current_user
+from app.models.user import User
+from app.database.session import get_db
+from app.services.library_service import LibraryService
 from app.schemas.image_to_video import (
     AnalyzeImageRequest,
     AnalyzeImageResponse,
@@ -20,6 +25,7 @@ from app.schemas.image_to_video import (
 from app.services.qwen_vl_service import qwen_vl_service
 from app.services.volc_video_service import volc_video_service
 from app.services.wanx_kf2v_service import wanx_kf2v_service
+from app.services.google_veo_service import google_veo_service
 from app.services.oss_service import oss_service
 
 router = APIRouter()
@@ -117,7 +123,9 @@ async def analyze_image(
 
 @router.post("/generate", response_model=ImageToVideoResponse)
 async def generate_video(
-    request: ImageToVideoRequest
+    request: ImageToVideoRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ) -> ImageToVideoResponse:
     """生成视频.
     
@@ -156,10 +164,40 @@ async def generate_video(
             # 通义万相
             result = await _generate_wanx_video(request, first_frame_url, last_frame_url)
         
+        elif request.model in [VideoModel.GOOGLE_VEO_T2V, VideoModel.GOOGLE_VEO_I2V_FIRST, VideoModel.GOOGLE_VEO_I2V_FIRST_TAIL]:
+            # Google Veo 3.1
+            result = await _generate_google_veo_video(request)
+        
         else:
             raise ValueError(f"不支持的模型: {request.model}")
         
         logger.info(f"视频生成完成: video_url={result.video_url}")
+        
+        # 保存生成的视频到用户视频库
+        library_service = LibraryService(db)
+        
+        # 判断是否为Google Veo模型
+        is_google_veo = 'google-veo' in request.model.value.lower()
+        
+        # 确定generation_type
+        if request.last_frame_base64:
+            generation_type = "image_to_video_first_tail"
+        elif request.first_frame_base64:
+            generation_type = "image_to_video_first"
+        else:
+            generation_type = "text_to_video"
+        
+        library_service.save_video(
+            user_id=current_user.id,
+            video_url=result.video_url,
+            model=request.model.value,
+            prompt=request.prompt,
+            is_google_veo=is_google_veo,
+            duration=result.duration,
+            resolution=request.resolution.value if request.resolution else None,
+            aspect_ratio=request.aspect_ratio,
+            generation_type=generation_type
+        )
         
         return result
         
@@ -280,4 +318,72 @@ async def _generate_wanx_video(
         duration=5,  # 通义万相固定5秒
         orig_prompt=result.get("orig_prompt", request.prompt),
         actual_prompt=result.get("actual_prompt")
+    )
+
+
+async def _generate_google_veo_video(
+    request: ImageToVideoRequest
+) -> ImageToVideoResponse:
+    """使用Google Veo 3.1生成视频.
+    
+    Args:
+        request: 视频生成请求
+        
+    Returns:
+        视频生成结果
+        
+    Raises:
+        ValueError: 参数验证失败
+    """
+    # 根据模型类型调用不同的方法
+    if request.model == VideoModel.GOOGLE_VEO_T2V:
+        # 文生视频模式（纯文本，无图片）
+        result = await google_veo_service.generate_text_to_video(
+            prompt=request.prompt,
+            duration=request.duration.value,
+            resolution=request.resolution.value.lower(),  # "720P" -> "720p"
+            aspect_ratio=request.aspect_ratio or "16:9",
+            negative_prompt=None
+        )
+    
+    elif request.model == VideoModel.GOOGLE_VEO_I2V_FIRST:
+        # 单图首帧模式
+        if not request.first_frame_base64:
+            raise ValueError("Google Veo单图首帧模式需要提供first_frame_base64")
+        
+        result = await google_veo_service.generate_image_to_video_first(
+            image_base64=request.first_frame_base64,
+            prompt=request.prompt,
+            duration=request.duration.value,
+            resolution=request.resolution.value.lower(),  # "720P" -> "720p"
+            aspect_ratio=request.aspect_ratio or "16:9",
+            negative_prompt=None
+        )
+    
+    elif request.model == VideoModel.GOOGLE_VEO_I2V_FIRST_TAIL:
+        # 首尾帧插值模式
+        if not request.first_frame_base64 or not request.last_frame_base64:
+            raise ValueError("Google Veo首尾帧模式需要提供first_frame_base64和last_frame_base64")
+        
+        result = await google_veo_service.generate_image_to_video_first_tail(
+            first_image_base64=request.first_frame_base64,
+            last_image_base64=request.last_frame_base64,
+            prompt=request.prompt,
+            duration=request.duration.value,
+            resolution=request.resolution.value.lower(),  # "720P" -> "720p"
+            aspect_ratio=request.aspect_ratio or "16:9",
+            negative_prompt=None
+        )
+    
+    else:
+        raise ValueError(f"不支持的Google Veo模型: {request.model}")
+    
+    # 构建响应
+    return ImageToVideoResponse(
+        video_url=result.get("video_url", ""),
+        task_id="",  # Google Veo不返回task_id
+        model=request.model.value,
+        duration=result.get("duration", request.duration.value),
+        orig_prompt=request.prompt,
+        actual_prompt=None
     )

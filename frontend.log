@@ -3,14 +3,23 @@
 > vite
 
 
-  VITE v7.1.12  ready in 77 ms
+  VITE v7.1.12  ready in 81 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
-3:23:51 PM [vite] (client) hmr update /src/components/TextToImage/index.jsx, /src/components/ImageToVideo/index.jsx, /src/components/VideoExtension/index.jsx, /src/components/TextToImage/PromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/ImageToVideo/ImageUpload.jsx, /src/components/ImageToVideo/PromptInput.jsx, /src/components/VideoExtension/VideoUpload.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx
-3:23:51 PM [vite] (client) hmr update /src/components/VideoExtension/VideoUpload.jsx
-3:23:51 PM [vite] (client) hmr update /src/components/VideoExtension/index.jsx, /src/components/VideoExtension/VideoUpload.jsx, /src/components/VideoExtension/ExtensionParams.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx, /src/components/VideoExtension/VideoCompare.jsx
-3:23:51 PM [vite] (client) hmr update /src/components/VideoExtension/ExtensionPromptInput.jsx
-3:23:51 PM [vite] (client) hmr update /src/components/VideoExtension/VideoCompare.jsx
-3:23:51 PM [vite] (client) hmr update /src/components/VideoExtension/ExtensionParams.jsx
-3:23:51 PM [vite] (client) hmr update /src/components/VideoExtension/index.jsx
+10:42:34 PM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx, /src/components/VideoExtension/index.jsx, /src/components/TextToImage/index.jsx, /src/components/common/Header.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/components/ProtectedRoute.jsx, /src/components/UserMenu.jsx, /src/components/ImageToVideo/ImageUpload.jsx, /src/components/ImageToVideo/PromptInput.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/TextToImage/PromptInput.jsx
+10:45:19 PM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx, /src/components/VideoExtension/index.jsx, /src/components/TextToImage/index.jsx, /src/components/common/Header.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/components/ProtectedRoute.jsx, /src/components/UserMenu.jsx, /src/components/ImageToVideo/ImageUpload.jsx, /src/components/ImageToVideo/PromptInput.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/TextToImage/PromptInput.jsx
+10:47:26 PM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx, /src/components/VideoExtension/index.jsx, /src/components/TextToImage/index.jsx, /src/components/common/Header.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/components/ProtectedRoute.jsx, /src/components/UserMenu.jsx, /src/components/ImageToVideo/ImageUpload.jsx, /src/components/ImageToVideo/PromptInput.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/TextToImage/PromptInput.jsx
+10:48:37 PM [vite] (client) hmr update /src/components/LibraryModal/index.jsx, /src/components/LibraryModal/PromptTab.jsx, /src/components/LibraryModal/VideoTab.jsx, /src/components/LibraryModal/ImageTab.jsx
+10:48:37 PM [vite] (client) hmr update /src/components/LibraryModal/index.jsx
+10:48:37 PM [vite] (client) hmr update /src/components/LibraryModal/PromptTab.jsx
+10:48:37 PM [vite] (client) hmr update /src/components/LibraryModal/ImageTab.jsx
+10:48:37 PM [vite] (client) hmr update /src/components/LibraryModal/VideoTab.jsx
+10:48:37 PM [vite] (client) hmr update /src/components/LibraryModal/styles.css
+10:48:37 PM [vite] (client) hmr update /src/components/TextToImage/PromptInput.jsx
+10:48:37 PM [vite] (client) hmr update /src/components/VideoExtension/VideoUpload.jsx
+10:48:37 PM [vite] (client) hmr update /src/components/VideoExtension/ExtensionPromptInput.jsx
+10:48:37 PM [vite] (client) hmr update /src/pages/Register.jsx
+10:48:37 PM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx, /src/components/VideoExtension/index.jsx, /src/components/TextToImage/index.jsx, /src/components/common/Header.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/components/ProtectedRoute.jsx, /src/components/UserMenu.jsx, /src/components/ImageToVideo/ImageUpload.jsx, /src/components/ImageToVideo/PromptInput.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/TextToImage/PromptInput.jsx
+10:48:37 PM [vite] (client) hmr update /src/components/common/Header.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/components/ProtectedRoute.jsx, /src/components/UserMenu.jsx
+10:48:41 PM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx, /src/components/VideoExtension/index.jsx, /src/components/TextToImage/index.jsx, /src/components/common/Header.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/components/ProtectedRoute.jsx, /src/components/UserMenu.jsx, /src/components/ImageToVideo/ImageUpload.jsx, /src/components/ImageToVideo/PromptInput.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/TextToImage/PromptInput.jsx

@@ -1,6 +1,8 @@
-"""Google Veo视频扩展服务.
+"""Google Veo视频生成服务.
 
-封装与Google Veo API的交互逻辑，用于视频扩展功能。
+封装与Google Veo API的交互逻辑，支持：
+1. 视频扩展（Video Extension）
+2. 图生视频（Image-to-Video）
 """
 
 import asyncio
@@ -20,14 +22,15 @@ from app.services.oss_service import oss_service
 
 
 class GoogleVeoService(LoggerMixin):
-    """Google Veo视频扩展服务类.
+    """Google Veo视频生成服务类.
     
-    使用Google Veo 3.1模型进行视频扩展。
+    使用Google Veo 3.1模型进行视频生成。
     
     核心功能：
     1. 视频扩展：基于原始视频生成扩展内容
-    2. 异步任务轮询：处理长时间运行的生成任务
-    3. 视频文件管理：上传到Google、下载并转存OSS
+    2. 图生视频：基于单图或首尾帧生成视频
+    3. 异步任务轮询：处理长时间运行的生成任务
+    4. 文件管理：上传到Google、下载并转存OSS
     
     Attributes:
         client: Google GenAI客户端
@@ -183,7 +186,7 @@ class GoogleVeoService(LoggerMixin):
             
         except Exception as e:
             self.logger.error(f"从OSS下载视频失败: {str(e)}")
-            raise ApiError("从OSS下载视频失败", details=str(e))
+            raise ApiError("从OSS下载视频失败", detail=str(e))
     
     async def _upload_video_to_google(self, video_path: str) -> types.File:
         """上传视频到Google.
@@ -213,7 +216,7 @@ class GoogleVeoService(LoggerMixin):
             
         except Exception as e:
             self.logger.error(f"上传视频到Google失败: {str(e)}")
-            raise ApiError("上传视频到Google失败", details=str(e))
+            raise ApiError("上传视频到Google失败", detail=str(e))
     
     async def _create_extension_task(
         self,
@@ -269,7 +272,7 @@ class GoogleVeoService(LoggerMixin):
             
         except Exception as e:
             self.logger.error(f"创建视频扩展任务失败: {str(e)}")
-            raise ApiError("创建视频扩展任务失败", details=str(e))
+            raise ApiError("创建视频扩展任务失败", detail=str(e))
     
     async def _poll_operation(
         self,
@@ -332,20 +335,29 @@ class GoogleVeoService(LoggerMixin):
             ApiError: 下载失败
         """
         try:
-            self.logger.info(f"从Google下载视频: {google_video.name}")
+            # 尝试获取视频标识信息
+            video_id = getattr(google_video, 'name', None) or getattr(google_video, 'uri', 'unknown')
+            self.logger.info(f"从Google下载视频: {video_id}")
             
             # 创建临时文件
             temp_fd, temp_path = tempfile.mkstemp(suffix=".mp4")
             os.close(temp_fd)
             
-            # 下载视频（在线程池中运行）
+            # 根据官方文档：先下载再保存
+            # client.files.download(file=generated_video.video)
+            # generated_video.video.save("parameters_example.mp4")
             loop = asyncio.get_event_loop()
+            
+            # 先调用 download 获取数据
             await loop.run_in_executor(
                 None,
-                lambda: self.client.files.download(
-                    file=google_video,
-                    path=temp_path
-                )
+                lambda: self.client.files.download(file=google_video)
+            )
+            
+            # 再调用 save 保存到文件
+            await loop.run_in_executor(
+                None,
+                lambda: google_video.save(temp_path)
             )
             
             file_size = os.path.getsize(temp_path)
@@ -358,7 +370,7 @@ class GoogleVeoService(LoggerMixin):
             
         except Exception as e:
             self.logger.error(f"从Google下载视频失败: {str(e)}")
-            raise ApiError("从Google下载视频失败", details=str(e))
+            raise ApiError("从Google下载视频失败", detail=str(e))
     
     async def _upload_video_to_oss(
         self,
@@ -409,7 +421,7 @@ class GoogleVeoService(LoggerMixin):
             
         except Exception as e:
             self.logger.error(f"上传视频到OSS失败: {str(e)}")
-            raise ApiError("上传视频到OSS失败", details=str(e))
+            raise ApiError("上传视频到OSS失败", detail=str(e))
     
     def _cleanup_temp_files(self, file_paths: list[str]) -> None:
         """清理临时文件.
@@ -424,6 +436,353 @@ class GoogleVeoService(LoggerMixin):
                     self.logger.info(f"临时文件已清理: {path}")
             except Exception as e:
                 self.logger.warning(f"清理临时文件失败: {path}, 错误: {e}")
+    
+    async def _base64_to_google_file(self, image_base64: str) -> types.File:
+        """将Base64图片转换为Google File对象.
+        
+        Args:
+            image_base64: Base64编码的图片 (格式: data:image/{type};base64,{data})
+            
+        Returns:
+            Google File对象
+            
+        Raises:
+            ApiError: 转换失败
+        """
+        try:
+            import base64
+            
+            self.logger.info("转换Base64图片到Google File...")
+            
+            # 解析Base64数据
+            if "base64," in image_base64:
+                base64_data = image_base64.split("base64,")[1]
+            else:
+                base64_data = image_base64
+            
+            # 解码
+            image_bytes = base64.b64decode(base64_data)
+            
+            # 创建临时文件
+            temp_fd, temp_path = tempfile.mkstemp(suffix=".png")
+            os.close(temp_fd)
+            
+            with open(temp_path, "wb") as f:
+                f.write(image_bytes)
+            
+            self.logger.info(f"Base64图片已保存到临时文件: {temp_path}")
+            
+            # 上传到Google
+            loop = asyncio.get_event_loop()
+            google_file = await loop.run_in_executor(
+                None,
+                lambda: self.client.files.upload(path=temp_path)
+            )
+            
+            # 清理临时文件
+            os.remove(temp_path)
+            
+            self.logger.info(f"图片已上传到Google: {google_file.name}")
+            
+            return google_file
+            
+        except Exception as e:
+            self.logger.error(f"Base64图片转换失败: {str(e)}")
+            raise ApiError("Base64图片转换失败", detail=str(e))
+    
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True
+    )
+    async def generate_text_to_video(
+        self,
+        prompt: str,
+        duration: int = 6,
+        resolution: str = "720p",
+        aspect_ratio: str = "16:9",
+        negative_prompt: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """文生视频（纯文本）.
+        
+        仅基于文本提示词生成视频，无需图片输入。
+        
+        Args:
+            prompt: 视频描述提示词
+            duration: 视频时长（4/6/8秒），默认6秒
+            resolution: 分辨率（720p/1080p），默认720p
+            aspect_ratio: 长宽比（16:9/9:16），默认16:9
+            negative_prompt: 反向提示词（可选）
+            
+        Returns:
+            包含生成视频信息的字典（同单图首帧）
+            
+        Raises:
+            ApiError: API调用失败
+        """
+        self.logger.info(
+            f"开始文生视频: duration={duration}s, "
+            f"resolution={resolution}, aspect_ratio={aspect_ratio}"
+        )
+        
+        try:
+            # 构建配置
+            config = types.GenerateVideosConfig(
+                number_of_videos=1,
+                resolution=resolution,
+                aspect_ratio=aspect_ratio,
+                duration_seconds=duration
+            )
+            
+            if negative_prompt:
+                config.negative_prompt = negative_prompt
+            
+            # 创建任务（纯文本，无图片）
+            loop = asyncio.get_event_loop()
+            operation = await loop.run_in_executor(
+                None,
+                lambda: self.client.models.generate_videos(
+                    model=self.model,
+                    prompt=prompt,
+                    config=config
+                )
+            )
+            
+            self.logger.info(f"文生视频任务创建成功: operation.name={operation.name}")
+            
+            # 轮询任务
+            operation = await self._poll_operation(operation)
+            
+            # 下载视频
+            generated_video = operation.response.generated_videos[0]
+            video_path = await self._download_video_from_google(generated_video.video)
+            
+            # 上传到OSS
+            video_url = await self._upload_video_to_oss(video_path, aspect_ratio)
+            
+            # 清理
+            self._cleanup_temp_files([video_path])
+            
+            result = {
+                "video_url": video_url,
+                "prompt": prompt,
+                "duration": duration,
+                "resolution": resolution,
+                "aspect_ratio": aspect_ratio,
+                "model": self.model
+            }
+            
+            self.logger.info(f"文生视频成功: {video_url[:100]}")
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"文生视频失败: {str(e)}")
+            raise ApiError("文生视频失败", detail=str(e))
+    
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True
+    )
+    async def generate_image_to_video_first(
+        self,
+        image_base64: str,
+        prompt: str,
+        duration: int = 6,
+        resolution: str = "720p",
+        aspect_ratio: str = "16:9",
+        negative_prompt: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """单图首帧生成视频.
+        
+        基于单张图片作为首帧生成视频。
+        
+        Args:
+            image_base64: 图片Base64编码
+            prompt: 视频描述提示词
+            duration: 视频时长（4/6/8秒），默认6秒
+            resolution: 分辨率（720p/1080p），默认720p
+            aspect_ratio: 长宽比（16:9/9:16），默认16:9
+            negative_prompt: 反向提示词（可选）
+            
+        Returns:
+            包含生成视频信息的字典:
+            {
+                "video_url": str,  # 生成视频OSS URL
+                "prompt": str,
+                "duration": int,
+                "resolution": str,
+                "aspect_ratio": str,
+                "model": str
+            }
+            
+        Raises:
+            ApiError: API调用失败
+        """
+        self.logger.info(
+            f"开始单图首帧生成视频: duration={duration}s, "
+            f"resolution={resolution}, aspect_ratio={aspect_ratio}"
+        )
+        
+        try:
+            # 步骤1: Base64转Google File
+            google_image = await self._base64_to_google_file(image_base64)
+            
+            # 步骤2: 构建配置
+            config = types.GenerateVideosConfig(
+                number_of_videos=1,
+                resolution=resolution,
+                aspect_ratio=aspect_ratio,
+                duration_seconds=duration
+            )
+            
+            if negative_prompt:
+                config.negative_prompt = negative_prompt
+            
+            # 步骤3: 创建任务
+            loop = asyncio.get_event_loop()
+            operation = await loop.run_in_executor(
+                None,
+                lambda: self.client.models.generate_videos(
+                    model=self.model,
+                    prompt=prompt,
+                    image=google_image,
+                    config=config
+                )
+            )
+            
+            self.logger.info(f"任务创建成功: operation.name={operation.name}")
+            
+            # 步骤4: 轮询任务
+            operation = await self._poll_operation(operation)
+            
+            # 步骤5: 下载视频
+            generated_video = operation.response.generated_videos[0]
+            video_path = await self._download_video_from_google(generated_video.video)
+            
+            # 步骤6: 上传到OSS
+            video_url = await self._upload_video_to_oss(video_path, aspect_ratio)
+            
+            # 步骤7: 清理
+            self._cleanup_temp_files([video_path])
+            
+            result = {
+                "video_url": video_url,
+                "prompt": prompt,
+                "duration": duration,
+                "resolution": resolution,
+                "aspect_ratio": aspect_ratio,
+                "model": self.model
+            }
+            
+            self.logger.info(f"单图首帧生成成功: {video_url[:100]}")
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"单图首帧生成失败: {str(e)}")
+            raise ApiError("单图首帧生成失败", detail=str(e))
+    
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True
+    )
+    async def generate_image_to_video_first_tail(
+        self,
+        first_image_base64: str,
+        last_image_base64: str,
+        prompt: str,
+        duration: int = 8,
+        resolution: str = "720p",
+        aspect_ratio: str = "16:9",
+        negative_prompt: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """首尾帧插值生成视频.
+        
+        基于首帧和尾帧生成中间过渡视频。
+        
+        Args:
+            first_image_base64: 首帧图片Base64编码
+            last_image_base64: 尾帧图片Base64编码
+            prompt: 视频描述提示词
+            duration: 视频时长（4/6/8秒），默认8秒
+            resolution: 分辨率（720p/1080p），默认720p
+            aspect_ratio: 长宽比（16:9/9:16），默认16:9
+            negative_prompt: 反向提示词（可选）
+            
+        Returns:
+            包含生成视频信息的字典（同单图首帧）
+            
+        Raises:
+            ApiError: API调用失败
+        """
+        self.logger.info(
+            f"开始首尾帧插值生成视频: duration={duration}s, "
+            f"resolution={resolution}, aspect_ratio={aspect_ratio}"
+        )
+        
+        try:
+            # 步骤1: 转换两张图片
+            google_first_image = await self._base64_to_google_file(first_image_base64)
+            google_last_image = await self._base64_to_google_file(last_image_base64)
+            
+            # 步骤2: 构建配置
+            config = types.GenerateVideosConfig(
+                number_of_videos=1,
+                resolution=resolution,
+                aspect_ratio=aspect_ratio,
+                duration_seconds=duration,
+                last_frame=google_last_image
+            )
+            
+            if negative_prompt:
+                config.negative_prompt = negative_prompt
+            
+            # 步骤3: 创建任务
+            loop = asyncio.get_event_loop()
+            operation = await loop.run_in_executor(
+                None,
+                lambda: self.client.models.generate_videos(
+                    model=self.model,
+                    prompt=prompt,
+                    image=google_first_image,
+                    config=config
+                )
+            )
+            
+            self.logger.info(f"首尾帧任务创建成功: operation.name={operation.name}")
+            
+            # 步骤4: 轮询任务
+            operation = await self._poll_operation(operation)
+            
+            # 步骤5: 下载视频
+            generated_video = operation.response.generated_videos[0]
+            video_path = await self._download_video_from_google(generated_video.video)
+            
+            # 步骤6: 上传到OSS
+            video_url = await self._upload_video_to_oss(video_path, aspect_ratio)
+            
+            # 步骤7: 清理
+            self._cleanup_temp_files([video_path])
+            
+            result = {
+                "video_url": video_url,
+                "prompt": prompt,
+                "duration": duration,
+                "resolution": resolution,
+                "aspect_ratio": aspect_ratio,
+                "model": self.model
+            }
+            
+            self.logger.info(f"首尾帧插值生成成功: {video_url[:100]}")
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"首尾帧插值生成失败: {str(e)}")
+            raise ApiError("首尾帧插值生成失败", detail=str(e))
 
 
 # 全局服务实例

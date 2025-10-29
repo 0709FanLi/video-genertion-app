@@ -5,7 +5,11 @@
 
 import React from 'react';
 import { Card, Select, Tag, Space } from 'antd';
-import { ThunderboltOutlined, RocketOutlined } from '@ant-design/icons';
+import { 
+  ThunderboltOutlined, 
+  RocketOutlined, 
+  GoogleOutlined 
+} from '@ant-design/icons';
 import useVideoStore from '../../store/videoStore';
 
 const ModelSelector = () => {
@@ -57,6 +61,33 @@ const ModelSelector = () => {
       icon: <ThunderboltOutlined />,
       tags: ['专业', '首尾帧'],
       needLastFrame: false, // 可选尾帧
+      needFirstFrame: true
+    },
+    {
+      value: 'google-veo-t2v',
+      label: 'Google Veo - 文生视频',
+      description: 'Veo 3.1纯文本生成视频，720p/1080p，4s/6s/8s，16:9/9:16',
+      icon: <GoogleOutlined />,
+      tags: ['国际', '纯文本', '多时长'],
+      needLastFrame: false,
+      needFirstFrame: false
+    },
+    {
+      value: 'google-veo-i2v-first',
+      label: 'Google Veo - 单图首帧',
+      description: 'Veo 3.1单图首帧，720p/1080p，4s/6s/8s，16:9/9:16',
+      icon: <GoogleOutlined />,
+      tags: ['国际', '单图', '多时长'],
+      needLastFrame: false,
+      needFirstFrame: true
+    },
+    {
+      value: 'google-veo-i2v-first-tail',
+      label: 'Google Veo - 首尾帧插值',
+      description: 'Veo 3.1首尾帧插值，720p/1080p，4s/6s/8s，16:9/9:16',
+      icon: <GoogleOutlined />,
+      tags: ['国际', '插值', '多时长'],
+      needLastFrame: true,
       needFirstFrame: true
     }
   ];

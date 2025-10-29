@@ -1,20 +1,23 @@
 /**
  * 扩展提示词输入组件
- * 支持提示词优化
+ * 支持提示词优化和模型选择
  */
 
-import React from 'react';
-import { Card, Input, Button, Space, Tag, Tooltip, message } from 'antd';
+import React, { useState } from 'react';
+import { Card, Input, Button, Space, Select, Tag, Tooltip, message } from 'antd';
 import {
   EditOutlined,
   BulbOutlined,
   CheckCircleOutlined,
-  SwapOutlined
+  SwapOutlined,
+  HistoryOutlined
 } from '@ant-design/icons';
 import useVideoExtensionStore from '../../store/videoExtensionStore';
 import { textToImageAPI } from '../../services/api';
+import LibraryModal from '../LibraryModal';
 
 const { TextArea } = Input;
+const { Option } = Select;
 
 const ExtensionPromptInput = () => {
   const {
@@ -22,15 +25,18 @@ const ExtensionPromptInput = () => {
     optimizedPrompt,
     useOptimizedPrompt,
     selectedPromptModel,
+    promptOptimizationModels,
     isOptimizing,
     isExtending,
     setExtensionPrompt,
     setOptimizedPrompt,
     toggleUseOptimizedPrompt,
+    selectPromptModel,
     setOptimizing,
     getCurrentPrompt
   } = useVideoExtensionStore();
   
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const maxLength = 1000;
   
   /**
@@ -63,10 +69,25 @@ const ExtensionPromptInput = () => {
     }
   };
   
+  /**
+   * 从资源库选择提示词
+   */
+  const handleSelectFromLibrary = (selection) => {
+    if (selection.type === 'prompt') {
+      const prompt = selection.data;
+      setExtensionPrompt(prompt.original_prompt || prompt.optimized_prompt);
+      if (prompt.optimized_prompt) {
+        setOptimizedPrompt(prompt.optimized_prompt);
+      }
+    }
+    setIsLibraryOpen(false);
+  };
+  
   const currentPrompt = getCurrentPrompt();
   const hasOptimized = optimizedPrompt.trim() !== '';
   
   return (
+    <>
     <Card
       title={
         <Space>
@@ -98,8 +119,22 @@ const ExtensionPromptInput = () => {
           />
         </div>
         
-        {/* 操作按钮 */}
-        <Space>
+        {/* 模型选择和优化按钮 */}
+        <Space wrap>
+          <Select
+            value={selectedPromptModel}
+            onChange={selectPromptModel}
+            style={{ width: 200 }}
+            disabled={isOptimizing || isExtending}
+          >
+            {Object.entries(promptOptimizationModels).map(([key, model]) => (
+              <Option key={key} value={key}>
+                {model.name}
+                {model.default && <Tag color="green" style={{ marginLeft: 8 }}>推荐</Tag>}
+              </Option>
+            ))}
+          </Select>
+          
           <Button
             type="primary"
             icon={<BulbOutlined />}
@@ -108,6 +143,14 @@ const ExtensionPromptInput = () => {
             disabled={!extensionPrompt.trim() || isExtending}
           >
             优化提示词
+          </Button>
+          
+          <Button
+            icon={<HistoryOutlined />}
+            onClick={() => setIsLibraryOpen(true)}
+            disabled={isExtending}
+          >
+            历史记录
           </Button>
           
           {hasOptimized && (
@@ -169,6 +212,15 @@ const ExtensionPromptInput = () => {
         </div>
       </Space>
     </Card>
+    
+    {/* 资源库弹窗 */}
+    <LibraryModal 
+      isOpen={isLibraryOpen}
+      onClose={() => setIsLibraryOpen(false)}
+      onSelect={handleSelectFromLibrary}
+      selectMode="prompt"
+    />
+    </>
   );
 };
 

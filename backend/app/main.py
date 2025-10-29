@@ -15,10 +15,13 @@ from app.api.routes import (
     text_to_image,
     file_upload,
     image_to_video,
-    video_extension
+    video_extension,
+    auth,
+    library
 )
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
+from app.database.session import init_db
 from app.exceptions import ApiError
 
 
@@ -38,6 +41,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     logger = get_logger(__name__)
     logger.info(f"{settings.app_name} v{settings.app_version} 启动中...")
     logger.info(f"调试模式: {settings.debug}")
+    
+    # 初始化数据库
+    try:
+        init_db()
+        logger.info("数据库初始化成功")
+    except Exception as e:
+        logger.error(f"数据库初始化失败: {str(e)}")
+        raise
     
     yield
     
@@ -73,9 +84,6 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     
-    # 注册路由
-    app.include_router(generation.router)
-    
     # 注册异常处理器
     @app.exception_handler(ApiError)
     async def api_error_handler(request: Request, exc: ApiError) -> JSONResponse:
@@ -107,6 +115,9 @@ def create_app() -> FastAPI:
         )
     
     # 注册路由
+    app.include_router(auth.router, prefix="/api")  # 认证路由
+    app.include_router(library.router)  # 资源库路由
+    app.include_router(generation.router)
     app.include_router(text_to_image.router)
     app.include_router(file_upload.router)
     app.include_router(image_to_video.router, prefix="/api/image-to-video", tags=["image-to-video"])

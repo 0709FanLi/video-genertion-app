@@ -48,7 +48,12 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     
     # CORS配置
-    cors_origins: list[str] = ["*"]
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000"
+    ]
     
     # 阿里云DashScope配置
     dashscope_api_key: str = os.getenv(
@@ -78,6 +83,20 @@ class Settings(BaseSettings):
     # 日志配置
     log_level: str = "INFO"
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    
+    # 数据库配置
+    database_url: str = os.getenv(
+        "DATABASE_URL",
+        "sqlite:///./video_generation_app.db"  # 默认使用SQLite
+    )
+    
+    # JWT认证配置
+    secret_key: str = os.getenv(
+        "SECRET_KEY",
+        "your-secret-key-change-in-production-please-use-a-long-random-string"
+    )
+    algorithm: str = "HS256"
+    access_token_expire_days: int = 7  # Token有效期7天
     
     # 阿里云OSS配置
     oss_access_key_id: str = ""

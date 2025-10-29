@@ -48,8 +48,8 @@ const ImageToVideoPage = () => {
       return false;
     }
     
-    // 文生视频模式不需要图片
-    if (selectedModel === 'volc-t2v') {
+    // 文生视频模式不需要图片（火山引擎和Google Veo）
+    if (selectedModel === 'volc-t2v' || selectedModel === 'google-veo-t2v') {
       return true;
     }
     

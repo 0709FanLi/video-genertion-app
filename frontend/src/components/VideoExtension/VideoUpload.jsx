@@ -1,107 +1,56 @@
 /**
- * 视频上传组件
- * 支持本地视频上传到OSS
+ * 视频选择组件
+ * 从视频库选择视频（不支持本地上传）
  */
 
-import React, { useRef } from 'react';
-import { Card, Upload, Button, Space, message, Progress } from 'antd';
-import { UploadOutlined, DeleteOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import React, { useRef, useState } from 'react';
+import { Card, Button, Space, message, Alert } from 'antd';
+import { SelectOutlined, DeleteOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import useVideoExtensionStore from '../../store/videoExtensionStore';
-import { fileUploadAPI } from '../../services/api';
+import LibraryModal from '../LibraryModal';
 
 const VideoUpload = () => {
   const {
     originalVideo,
     setOriginalVideo,
     clearOriginalVideo,
-    uploadProgress,
-    setUploadProgress,
-    isExtending
+    isExtending,
+    selectedModel
   } = useVideoExtensionStore();
   
   const videoRef = useRef(null);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  
+  // 判断是否需要Google Veo筛选
+  const needsGoogleVeo = selectedModel && selectedModel.includes('google-veo');
   
   /**
-   * 处理文件选择
+   * 从资源库选择视频
    */
-  const handleFileSelect = async (file) => {
-    console.log('[VideoUpload] handleFileSelect called:', file.name);
-    
-    try {
-      setUploadProgress(0);
-      message.loading({ content: '正在上传视频...', key: 'upload' });
+  const handleSelectFromLibrary = (selection) => {
+    if (selection.type === 'video') {
+      const video = selection.data;
       
-      console.log('[VideoUpload] Creating preview URL...');
-      // 先创建本地预览URL
-      const previewUrl = URL.createObjectURL(file);
-      console.log('[VideoUpload] Preview URL created:', previewUrl);
+      // 检查Google Veo兼容性
+      if (needsGoogleVeo && !video.is_google_veo) {
+        message.warning('Google Veo 视频延长仅支持延长由其生成的视频，请选择带有 Google Veo 标记的视频');
+        return;
+      }
       
-      console.log('[VideoUpload] Getting video duration...');
-      // 获取视频时长
-      const duration = await getVideoDuration(file);
-      console.log('[VideoUpload] Duration:', duration);
-      
-      console.log('[VideoUpload] Uploading to OSS...');
-      // 上传到OSS
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const result = await fileUploadAPI.uploadVideo(formData, {
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          console.log('[VideoUpload] Upload progress:', percentCompleted + '%');
-          setUploadProgress(percentCompleted);
-        }
-      });
-      
-      console.log('[VideoUpload] Upload result:', result);
-      
-      // 保存到store（使用OSS URL）
+      // 保存到store
       const videoData = {
-        url: result.url,  // OSS URL用于后端API
-        previewUrl: previewUrl,  // 本地Blob URL用于前端预览
-        file: file,
-        name: file.name,
-        size: file.size,
-        duration: duration
+        url: video.video_url,
+        name: video.prompt || '已保存的视频',
+        model: video.model,
+        duration: video.duration,
+        resolution: video.resolution,
+        is_google_veo: video.is_google_veo
       };
       
-      console.log('[VideoUpload] Saving to store:', videoData);
       setOriginalVideo(videoData);
-      
-      message.success({ content: '视频上传成功！', key: 'upload' });
-      setUploadProgress(100);
-      
-      console.log('[VideoUpload] Upload complete');
-      
-    } catch (error) {
-      console.error('[VideoUpload] Upload failed:', error);
-      message.error({ content: '视频上传失败', key: 'upload' });
-      setUploadProgress(0);
+      setIsLibraryOpen(false);
+      message.success('已选择视频');
     }
-  };
-  
-  /**
-   * 获取视频时长
-   */
-  const getVideoDuration = (file) => {
-    return new Promise((resolve) => {
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      
-      video.onloadedmetadata = () => {
-        window.URL.revokeObjectURL(video.src);
-        resolve(Math.round(video.duration));
-      };
-      
-      video.onerror = () => {
-        resolve(0);
-      };
-      
-      video.src = URL.createObjectURL(file);
-    });
   };
   
   /**
@@ -109,13 +58,13 @@ const VideoUpload = () => {
    */
   const handleRemove = () => {
     clearOriginalVideo();
-    setUploadProgress(0);
-    message.info('已清除原始视频');
+    message.info('已清除选择的视频');
   };
   
   return (
+    <>
     <Card
-      title="上传原始视频"
+      title="选择原始视频"
       variant="borderless"
       extra={
         originalVideo && (
@@ -132,62 +81,35 @@ const VideoUpload = () => {
       }
     >
       <Space direction="vertical" style={{ width: '100%' }} size="large">
+        {/* Google Veo 提示 */}
+        {needsGoogleVeo && (
+          <Alert
+            message="Google Veo 视频延长"
+            description="Google Veo 仅支持延长由其生成的视频。请从视频库中选择带有 Google Veo 标记的视频。"
+            type="info"
+            showIcon
+            icon={<InfoCircleOutlined />}
+          />
+        )}
+        
         {!originalVideo ? (
           <>
-            <Upload
-              accept="video/mp4,video/quicktime"
-              beforeUpload={(file) => {
-                console.log('[VideoUpload] beforeUpload called:', {
-                  name: file.name,
-                  type: file.type,
-                  size: file.size
-                });
-                
-                // 检查文件类型
-                const isVideo = file.type.startsWith('video/');
-                if (!isVideo) {
-                  console.error('[VideoUpload] Not a video file:', file.type);
-                  message.error('只能上传视频文件！');
-                  return Upload.LIST_IGNORE;
-                }
-                
-                // 检查文件格式
-                const isMP4orMOV = file.type === 'video/mp4' || file.type === 'video/quicktime';
-                if (!isMP4orMOV) {
-                  console.error('[VideoUpload] Unsupported format:', file.type);
-                  message.error('只支持MP4和MOV格式！');
-                  return Upload.LIST_IGNORE;
-                }
-                
-                console.log('[VideoUpload] File validation passed');
-                
-                // 直接处理文件
-                handleFileSelect(file);
-                
-                // 阻止Upload组件的默认行为
-                return false;
-              }}
-              showUploadList={false}
+            <Button 
+              type="primary" 
+              icon={<SelectOutlined />} 
+              size="large"
               disabled={isExtending}
+              block
+              onClick={() => setIsLibraryOpen(true)}
             >
-              <Button 
-                type="primary" 
-                icon={<UploadOutlined />} 
-                size="large"
-                disabled={isExtending}
-                block
-                onClick={() => console.log('[VideoUpload] Button clicked')}
-              >
-                点击上传视频 (MP4/MOV)
-              </Button>
-            </Upload>
-            
-            {uploadProgress > 0 && uploadProgress < 100 && (
-              <Progress percent={uploadProgress} status="active" />
-            )}
+              从视频库选择
+            </Button>
             
             <div style={{ fontSize: '12px', color: '#666', textAlign: 'center' }}>
-              💡 提示：支持MP4和MOV格式，无大小限制
+              💡 提示：请从已生成的视频库中选择要延长的视频
+              {needsGoogleVeo && <div style={{ color: '#1890ff', marginTop: 4 }}>
+                ⚠️ 当前模型需要选择 Google Veo 生成的视频
+              </div>}
             </div>
           </>
         ) : (
@@ -195,7 +117,7 @@ const VideoUpload = () => {
             {/* 视频预览 */}
             <video
               ref={videoRef}
-              src={originalVideo.previewUrl || originalVideo.url}
+              src={originalVideo.url}
               controls
               style={{
                 width: '100%',
@@ -208,16 +130,32 @@ const VideoUpload = () => {
             {/* 视频信息 */}
             <div style={{ marginTop: '12px', fontSize: '12px', color: '#666' }}>
               <Space direction="vertical" size="small">
-                <div>📄 文件名: {originalVideo.name}</div>
-                <div>📏 大小: {(originalVideo.size / 1024 / 1024).toFixed(2)} MB</div>
-                <div>⏱️ 时长: {originalVideo.duration} 秒</div>
-                <div>🔗 OSS URL: {originalVideo.url.substring(0, 60)}...</div>
+                <div>📝 描述: {originalVideo.name}</div>
+                {originalVideo.model && <div>🎬 模型: {originalVideo.model}</div>}
+                {originalVideo.duration && <div>⏱️ 时长: {originalVideo.duration} 秒</div>}
+                {originalVideo.resolution && <div>📺 分辨率: {originalVideo.resolution}</div>}
+                {originalVideo.is_google_veo && (
+                  <div style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                    ✅ Google Veo 视频
+                  </div>
+                )}
+                <div>🔗 URL: {originalVideo.url.substring(0, 60)}...</div>
               </Space>
             </div>
           </div>
         )}
       </Space>
     </Card>
+    
+    {/* 资源库弹窗 */}
+    <LibraryModal 
+      isOpen={isLibraryOpen}
+      onClose={() => setIsLibraryOpen(false)}
+      onSelect={handleSelectFromLibrary}
+      selectMode="video"
+      googleVeoOnlyMode={needsGoogleVeo}
+    />
+    </>
   );
 };
 

@@ -11,7 +11,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 // 创建axios实例
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 300000, // 5分钟超时
+  timeout: 1200000, // 20分钟超时
   headers: {
     'Content-Type': 'application/json'
   }
@@ -21,6 +21,24 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     console.log('[API] 请求:', config.method.toUpperCase(), config.url);
+    
+    // 添加Token到请求头
+    // Zustand persist存储在'auth-storage'键下
+    let token = null;
+    try {
+      const authStorage = localStorage.getItem('auth-storage');
+      if (authStorage) {
+        const authData = JSON.parse(authStorage);
+        token = authData.state?.token || null;
+      }
+    } catch (e) {
+      console.error('[API] 解析auth-storage失败:', e);
+    }
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
     return config;
   },
   (error) => {
@@ -370,6 +388,65 @@ export const videoExtensionAPI = {
       model,
       aspect_ratio,
       negative_prompt
+    });
+    return response.data;
+  }
+};
+
+// ========== 认证API ==========
+export const authAPI = {
+  /**
+   * 用户注册
+   * @param {string} username - 用户名
+   * @param {string} password - 密码
+   * @returns {Promise<Object>} 用户信息
+   */
+  register: async (username, password) => {
+    const response = await apiClient.post('/api/auth/register', {
+      username,
+      password
+    });
+    return response.data;
+  },
+  
+  /**
+   * 用户登录
+   * @param {string} username - 用户名
+   * @param {string} password - 密码
+   * @returns {Promise<Object>} { access_token, token_type }
+   */
+  login: async (username, password) => {
+    const response = await apiClient.post('/api/auth/login', {
+      username,
+      password
+    });
+    return response.data;
+  },
+  
+  /**
+   * 获取当前用户信息
+   * @param {string} token - JWT Token
+   * @returns {Promise<Object>} 用户信息
+   */
+  getCurrentUser: async (token) => {
+    const response = await apiClient.get('/api/auth/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response.data;
+  },
+  
+  /**
+   * 用户登出
+   * @param {string} token - JWT Token
+   * @returns {Promise<Object>} 登出结果
+   */
+  logout: async (token) => {
+    const response = await apiClient.post('/api/auth/logout', {}, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
     return response.data;
   }

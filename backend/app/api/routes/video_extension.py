@@ -5,10 +5,16 @@
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.api.deps_auth import get_current_user
+from app.models.user import User
+from app.models.user_video import UserVideo
+from app.database.session import get_db
+from app.services.library_service import LibraryService
 from app.schemas.video_extension import (
     VideoExtensionRequest,
     VideoExtensionResponse,
@@ -47,7 +53,9 @@ async def get_models() -> ModelsListResponse:
     description="基于原始视频和提示词生成扩展内容"
 )
 async def extend_video(
-    request: VideoExtensionRequest
+    request: VideoExtensionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ) -> VideoExtensionResponse:
     """扩展视频API.
     
@@ -96,6 +104,31 @@ async def extend_video(
             )
         
         logger.info(f"视频扩展成功: {result['extended_video_url'][:100]}")
+        
+        # 保存扩展后的视频到用户视频库
+        library_service = LibraryService(db)
+        
+        # 查询原始视频记录（获取source_video_id）
+        source_video = db.query(UserVideo).filter(
+            UserVideo.user_id == current_user.id,
+            UserVideo.video_url == request.video_url
+        ).first()
+        
+        # 判断是否为Google Veo模型
+        is_google_veo = 'google-veo' in request.model.lower()
+        
+        library_service.save_video(
+            user_id=current_user.id,
+            video_url=result['extended_video_url'],
+            model=request.model,
+            prompt=request.prompt,
+            is_google_veo=is_google_veo,
+            duration=8,  # Google Veo固定8秒
+            resolution="720p",  # Google Veo固定720p
+            aspect_ratio=request.aspect_ratio,
+            generation_type="video_extension",
+            source_video_id=source_video.id if source_video else None
+        )
         
         return VideoExtensionResponse(**result)
         

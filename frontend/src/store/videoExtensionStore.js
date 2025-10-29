@@ -28,7 +28,6 @@ const useVideoExtensionStore = create(
       
       // 参数设置
       aspectRatio: '16:9', // 视频长宽比
-      negativePrompt: '', // 反向提示词（可选）
       
       // 生成结果
       extendedVideo: null, // 扩展后的视频 { url, duration, resolution, aspect_ratio }
@@ -102,11 +101,6 @@ const useVideoExtensionStore = create(
       setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
       
       /**
-       * 设置反向提示词
-       */
-      setNegativePrompt: (prompt) => set({ negativePrompt: prompt }),
-      
-      /**
        * 设置扩展后的视频
        */
       setExtendedVideo: (video) => set({ extendedVideo: video }),
@@ -157,7 +151,6 @@ const useVideoExtensionStore = create(
         extensionPrompt: '',
         optimizedPrompt: '',
         useOptimizedPrompt: true,
-        negativePrompt: '',
         extendedVideo: null,
         isOptimizing: false,
         isExtending: false,

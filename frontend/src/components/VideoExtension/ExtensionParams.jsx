@@ -1,21 +1,17 @@
 /**
  * 扩展参数设置组件
- * 长宽比、反向提示词等
+ * 长宽比等参数设置
  */
 
 import React from 'react';
-import { Card, Space, Radio, Input, Tooltip, Tag } from 'antd';
-import { InfoCircleOutlined, HighlightOutlined, BorderOutlined } from '@ant-design/icons';
+import { Card, Space, Radio, Tag } from 'antd';
+import { HighlightOutlined, BorderOutlined } from '@ant-design/icons';
 import useVideoExtensionStore from '../../store/videoExtensionStore';
-
-const { TextArea } = Input;
 
 const ExtensionParams = () => {
   const {
     aspectRatio,
-    negativePrompt,
     setAspectRatio,
-    setNegativePrompt,
     isExtending
   } = useVideoExtensionStore();
   
@@ -80,29 +76,6 @@ const ExtensionParams = () => {
               </Space>
             </div>
           </Space>
-        </div>
-        
-        {/* 反向提示词（可选） */}
-        <div>
-          <div style={{ marginBottom: '8px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>反向提示词</span>
-            <Tag color="default">可选</Tag>
-            <Tooltip title="描述不希望在视频中看到的内容">
-              <InfoCircleOutlined style={{ color: '#1890ff', cursor: 'pointer' }} />
-            </Tooltip>
-          </div>
-          <TextArea
-            value={negativePrompt}
-            onChange={(e) => setNegativePrompt(e.target.value)}
-            placeholder="描述不希望出现的内容（可选）&#10;例如：cartoon, drawing, low quality, blurry"
-            rows={3}
-            maxLength={500}
-            showCount
-            disabled={isExtending}
-          />
-          <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
-            💡 提示：可以用来避免生成卡通风格、低质量等不想要的效果
-          </div>
         </div>
       </Space>
     </Card>

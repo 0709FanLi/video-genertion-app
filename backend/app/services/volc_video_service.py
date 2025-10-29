@@ -284,7 +284,7 @@ class VolcVideoService(LoggerMixin):
             except httpx.HTTPStatusError as e:
                 error_detail = e.response.text
                 self.logger.error(f"火山即梦请求失败: {error_detail}")
-                raise ApiError("火山即梦请求失败", details=error_detail)
+                raise ApiError("火山即梦请求失败", detail=error_detail)
             except Exception as e:
                 self.logger.error(f"提交任务异常: {str(e)}")
                 raise
@@ -328,14 +328,14 @@ class VolcVideoService(LoggerMixin):
                 
                 if data.get("code") != 10000:
                     error_msg = data.get("message", "未知错误")
-                    raise ApiError(f"查询任务失败: {error_msg}", details=str(data))
+                    raise ApiError(f"查询任务失败: {error_msg}", detail=str(data))
                 
                 return data["data"]
                 
             except httpx.HTTPStatusError as e:
                 error_detail = e.response.text
                 self.logger.error(f"查询任务失败: {error_detail}")
-                raise ApiError("查询任务失败", details=error_detail)
+                raise ApiError("查询任务失败", detail=error_detail)
     
     async def _poll_task_result(self, req_key: str, task_id: str) -> dict[str, Any]:
         """轮询任务结果直到完成.
@@ -363,7 +363,7 @@ class VolcVideoService(LoggerMixin):
             if status == "done":
                 video_url = result.get("video_url")
                 if not video_url:
-                    raise ApiError("任务完成但未返回视频URL", details=str(result))
+                    raise ApiError("任务完成但未返回视频URL", detail=str(result))
                 
                 self.logger.info(f"任务完成: task_id={task_id}")
                 return result

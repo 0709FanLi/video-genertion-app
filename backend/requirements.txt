@@ -32,3 +32,16 @@ python-dotenv==1.0.1
 
 # 阿里云OSS
 oss2==2.18.4
+
+# 数据库
+sqlalchemy==2.0.36
+alembic==1.14.0
+
+# 密码哈希
+passlib[bcrypt]==1.7.4
+
+# JWT认证
+python-jose[cryptography]==3.3.0
+
+# Google GenAI SDK
+google-genai==1.46.0
