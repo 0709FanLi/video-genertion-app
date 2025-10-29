@@ -206,6 +206,79 @@ export const fileUploadAPI = {
   healthCheck: async () => {
     const response = await apiClient.get('/api/files/health');
     return response.data;
+  },
+  
+  /**
+   * 上传视频（便捷接口，支持进度回调）
+   * @param {FormData} formData - 包含视频文件的FormData
+   * @param {Object} config - axios配置（如onUploadProgress）
+   */
+  uploadVideo: async (formData, config = {}) => {
+    // 从formData中获取file
+    const file = formData.get('file');
+    
+    // 创建新的FormData
+    const newFormData = new FormData();
+    newFormData.append('file', file);
+    newFormData.append('category', 'videos');
+    
+    const response = await apiClient.post('/api/files/upload', newFormData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      ...config
+    });
+    return response.data;
+  }
+};
+
+/**
+ * 图生视频API
+ */
+export const imageToVideoAPI = {
+  /**
+   * 分析图片生成视频描述
+   * @param {string} imageBase64 - 图片Base64编码 (格式: data:image/{type};base64,{data})
+   * @param {boolean} enableThinking - 是否开启思考模式
+   */
+  analyzeImage: async (imageBase64, enableThinking = true) => {
+    const response = await apiClient.post('/api/image-to-video/analyze-image', {
+      image_base64: imageBase64,
+      enable_thinking: enableThinking
+    });
+    return response.data;
+  },
+  
+  /**
+   * 生成视频
+   * @param {Object} params - 生成参数
+   * @param {string} params.model - 模型 (volc-t2v | volc-i2v-first | volc-i2v-first-tail | wanx-kf2v-flash | wanx-kf2v-plus)
+   * @param {string} params.first_frame_base64 - 首帧图片Base64
+   * @param {string} params.last_frame_base64 - 尾帧图片Base64 (可选)
+   * @param {string} params.prompt - 视频描述提示词
+   * @param {number} params.duration - 时长(秒) (5 | 10)
+   * @param {string} params.resolution - 分辨率 (480P | 720P | 1080P)
+   * @param {string} params.aspect_ratio - 长宽比 (16:9 | 4:3 | 1:1 | 3:4 | 9:16 | 21:9)，仅文生视频使用
+   */
+  generateVideo: async ({
+    model = 'volc-i2v-first',
+    first_frame_base64,
+    last_frame_base64 = null,
+    prompt,
+    duration = 5,
+    resolution = '720P',
+    aspect_ratio = '16:9'
+  }) => {
+    const response = await apiClient.post('/api/image-to-video/generate', {
+      model,
+      first_frame_base64,
+      last_frame_base64,
+      prompt,
+      duration,
+      resolution,
+      aspect_ratio
+    });
+    return response.data;
   }
 };
 
@@ -259,6 +332,45 @@ export const api = {
    */
   healthCheck: async () => {
     const response = await apiClient.get('/health');
+    return response.data;
+  }
+};
+
+/**
+ * 视频扩展API
+ */
+export const videoExtensionAPI = {
+  /**
+   * 获取模型列表
+   */
+  getModels: async () => {
+    const response = await apiClient.get('/api/video-extension/models');
+    return response.data;
+  },
+  
+  /**
+   * 扩展视频
+   * @param {Object} params - 扩展参数
+   * @param {string} params.video_url - 原始视频OSS URL
+   * @param {string} params.prompt - 扩展描述提示词
+   * @param {string} params.model - 模型 (google-veo-3.1)
+   * @param {string} params.aspect_ratio - 长宽比 (16:9 | 9:16)
+   * @param {string} params.negative_prompt - 反向提示词（可选）
+   */
+  extendVideo: async ({
+    video_url,
+    prompt,
+    model = 'google-veo-3.1',
+    aspect_ratio = '16:9',
+    negative_prompt = null
+  }) => {
+    const response = await apiClient.post('/api/video-extension/extend', {
+      video_url,
+      prompt,
+      model,
+      aspect_ratio,
+      negative_prompt
+    });
     return response.data;
   }
 };

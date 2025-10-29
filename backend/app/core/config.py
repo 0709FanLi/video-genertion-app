@@ -67,6 +67,9 @@ class Settings(BaseSettings):
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
     
+    # Google Gemini/Veo配置
+    gemini_api_key: str = ""
+    
     # 请求配置
     request_timeout: int = 300
     task_poll_interval: int = 5
@@ -100,6 +103,20 @@ class Settings(BaseSettings):
             "default": False,
             "supports_reference": True,
             "max_reference_images": 2  # 根据文档，最多2张参考图
+        },
+        "aliyun-qwen-image": {
+            "name": "通义千问文生图",
+            "model_id": "qwen-image-plus",
+            "default": False,
+            "supports_reference": False,  # 不支持参考图
+            "max_reference_images": 0,
+            "available_sizes": [  # 支持的分辨率
+                {"value": "1664*928", "label": "1664×928 (16:9)", "ratio": "16:9"},
+                {"value": "1472*1140", "label": "1472×1140 (4:3)", "ratio": "4:3"},
+                {"value": "1328*1328", "label": "1328×1328 (1:1)", "ratio": "1:1"},
+                {"value": "1140*1472", "label": "1140×1472 (3:4)", "ratio": "3:4"},
+                {"value": "928*1664", "label": "928×1664 (9:16)", "ratio": "9:16"}
+            ]
         }
     }
     
@@ -114,6 +131,21 @@ class Settings(BaseSettings):
             "name": "DeepSeek-V3.2-Exp",
             "model_id": "deepseek-chat",
             "default": False
+        }
+    }
+    
+    # 视频扩展模型配置
+    video_extension_models: dict = {
+        "google-veo-3.1": {
+            "name": "Google Veo 3.1",
+            "model_id": "veo-3.1-generate-preview",
+            "default": True,
+            "specs": {
+                "resolution": "720p",  # 固定720p
+                "duration": 8,  # 固定8秒
+                "aspect_ratios": ["16:9", "9:16"],  # 支持的长宽比
+                "supports_negative_prompt": True
+            }
         }
     }
     

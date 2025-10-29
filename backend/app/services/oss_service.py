@@ -206,20 +206,21 @@ class OSSService:
                 detail=str(e)
             )
     
-    def upload_from_url(
+    async def upload_from_url(
         self,
         url: str,
         filename: str,
         category: str = "images"
     ) -> Dict[str, Any]:
-        """从URL下载文件并上传到OSS.
+        """从URL下载文件并上传到OSS（异步）.
         
         用于将AI生成的图片/视频从临时URL保存到OSS。
+        支持大文件下载（如视频），超时时间为5分钟。
         
         Args:
             url: 源文件URL
             filename: 保存的文件名
-            category: 文件类别
+            category: 文件类别 (images/videos/references)
         
         Returns:
             包含文件信息的字典
@@ -230,24 +231,43 @@ class OSSService:
         import httpx
         
         try:
-            logger.info(f"从URL下载文件: {url}")
+            logger.info(f"从URL下载文件: {url[:100]}...")
             
-            # 下载文件
-            with httpx.Client(timeout=60) as client:
-                response = client.get(url)
+            # 下载文件（异步，支持大文件）
+            # 视频文件可能较大，设置超时为5分钟
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                response = await client.get(url)
                 response.raise_for_status()
                 
                 file_content = response.content
                 content_type = response.headers.get('Content-Type')
+                file_size_mb = len(file_content) / 1024 / 1024
+            
+            logger.info(f"文件下载完成，大小: {file_size_mb:.2f}MB")
+            
+            # 检查文件大小（视频文件可能超过10MB，需要临时调整限制检查）
+            # 这里我们信任AI生成的视频，不做严格限制
             
             # 上传到OSS
             file_stream = BytesIO(file_content)
-            return self.upload_file(
-                file_stream,
-                filename,
-                category,
-                content_type
-            )
+            
+            # 临时保存原限制，上传视频时不检查大小限制
+            original_max_size = self.max_file_size
+            self.max_file_size = float('inf')  # 临时取消限制
+            
+            try:
+                result = self.upload_file(
+                    file_stream,
+                    filename,
+                    category,
+                    content_type
+                )
+            finally:
+                # 恢复原限制
+                self.max_file_size = original_max_size
+            
+            logger.info(f"文件已成功转存到OSS: {result['object_key']}")
+            return result
             
         except httpx.HTTPError as e:
             logger.error(f"下载文件失败: {e}")

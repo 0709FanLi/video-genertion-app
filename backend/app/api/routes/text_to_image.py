@@ -17,6 +17,7 @@ from app.services.llm_service import llm_service
 from app.services.deepseek_service import deepseek_service
 from app.services.volc_jimeng_service import volc_jimeng_service
 from app.services.wanx_i2i_service import wanx_i2i_service
+from app.services.qwen_image_service import qwen_image_service
 from app.exceptions.custom_exceptions import ApiError
 
 router = APIRouter(prefix="/api/text-to-image", tags=["text-to-image"])
@@ -232,6 +233,17 @@ async def generate_image(request: TextToImageRequest) -> TextToImageResponse:
                 size=request.size,
                 num_images=request.num_images
             )
+        
+        elif request.model == "aliyun-qwen-image":
+            # 通义千问文生图（纯文本，不支持参考图）
+            result = await qwen_image_service.generate_image(
+                prompt=request.prompt,
+                size=request.size or "1328*1328",
+                prompt_extend=True,
+                watermark=False
+            )
+            # 返回格式统一为列表
+            image_urls = [result["image_url"]]
         
         else:
             raise ApiError(

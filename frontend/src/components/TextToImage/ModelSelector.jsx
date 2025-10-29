@@ -31,12 +31,30 @@ const ModelSelector = ({ onGenerate }) => {
   const supportsReference = currentModel.supports_reference || false;
   const maxReferenceImages = currentModel.max_reference_images || 0;
   
-  // 图片尺寸选项
-  const sizeOptions = [
-    { label: '1024×1024 (正方形)', value: '1024x1024' },
-    { label: '1024×768 (横向)', value: '1024x768' },
-    { label: '768×1024 (竖向)', value: '768x1024' },
-  ];
+  // 图片尺寸选项（根据模型动态生成）
+  const sizeOptions = React.useMemo(() => {
+    // 如果模型有自定义的available_sizes，使用它
+    if (currentModel.available_sizes && currentModel.available_sizes.length > 0) {
+      return currentModel.available_sizes;
+    }
+    
+    // 默认尺寸选项（火山引擎即梦、通义万相）
+    return [
+      { label: '1024×1024 (正方形)', value: '1024x1024' },
+      { label: '1024×768 (横向)', value: '1024x768' },
+      { label: '768×1024 (竖向)', value: '768x1024' },
+    ];
+  }, [currentModel, selectedImageModel]);
+  
+  // 自动调整imageSize（当模型切换且当前size不在可选项中时）
+  React.useEffect(() => {
+    const currentSizeAvailable = sizeOptions.some(opt => opt.value === imageSize);
+    if (!currentSizeAvailable && sizeOptions.length > 0) {
+      // 尝试找到默认1:1的选项，否则使用第一个
+      const defaultSize = sizeOptions.find(opt => opt.ratio === '1:1') || sizeOptions[0];
+      setImageSize(defaultSize.value);
+    }
+  }, [selectedImageModel, sizeOptions, imageSize]);
   
   // 检查是否可以生成
   const canGenerate = (userPrompt.trim() || optimizedPrompt.trim()) && !isGenerating;

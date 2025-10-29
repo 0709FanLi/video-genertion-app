@@ -10,7 +10,13 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import generation, text_to_image, file_upload
+from app.api.routes import (
+    generation,
+    text_to_image,
+    file_upload,
+    image_to_video,
+    video_extension
+)
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
 from app.exceptions import ApiError
@@ -103,6 +109,8 @@ def create_app() -> FastAPI:
     # 注册路由
     app.include_router(text_to_image.router)
     app.include_router(file_upload.router)
+    app.include_router(image_to_video.router, prefix="/api/image-to-video", tags=["image-to-video"])
+    app.include_router(video_extension.router)
     
     # 健康检查端点
     @app.get("/health", tags=["health"])

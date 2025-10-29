@@ -46,13 +46,9 @@ class VolcJiMengService:
         self.base_url = settings.volc_base_url
         self.timeout = settings.request_timeout
         
-        # 解码SecretAccessKey (base64编码)
-        try:
-            self.secret_access_key = base64.b64decode(
-                self.secret_access_key
-            ).decode('utf-8')
-        except Exception as e:
-            logger.warning(f"SecretAccessKey解码失败,使用原始值: {e}")
+        # 注意：根据官方示例，Secret Key直接使用，不需要Base64解码
+        # 如果您的Secret Key是Base64编码的，需要先解码
+        logger.info(f"火山引擎服务初始化: access_key_id={self.access_key_id[:10]}...")
     
     def _generate_signature(
         self,
@@ -113,9 +109,9 @@ class VolcJiMengService:
             hashed_canonical_request
         ])
         
-        # 3. 计算签名
+        # 3. 计算签名（按照官方示例，直接使用secret_key）
         k_date = hmac.new(
-            f"VOLC{self.secret_access_key}".encode('utf-8'),
+            self.secret_access_key.encode('utf-8'),
             timestamp[:8].encode('utf-8'),
             hashlib.sha256
         ).digest()
@@ -153,7 +149,7 @@ class VolcJiMengService:
         query_params: Dict[str, str],
         body: str
     ) -> Dict[str, str]:
-        """构建认证请求头.
+        """构建认证请求头（按照官方示例格式）.
         
         Args:
             method: HTTP方法
@@ -165,11 +161,14 @@ class VolcJiMengService:
             包含认证信息的请求头
         """
         timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+        payload_hash = hashlib.sha256(body.encode('utf-8')).hexdigest()
         
+        # 按照官方示例格式构建headers
         headers = {
             "Content-Type": "application/json",
             "Host": "visual.volcengineapi.com",
-            "X-Date": timestamp
+            "X-Date": timestamp,
+            "X-Content-Sha256": payload_hash  # 添加这个必需的头
         }
         
         signature = self._generate_signature(
@@ -177,7 +176,8 @@ class VolcJiMengService:
         )
         
         credential_scope = f"{timestamp[:8]}/cn-north-1/{self.SERVICE_NAME}/request"
-        signed_headers = ";".join([k.lower() for k in sorted(headers.keys())])
+        # 签名头必须按字母顺序
+        signed_headers = "content-type;host;x-content-sha256;x-date"
         
         authorization = (
             f"HMAC-SHA256 "
