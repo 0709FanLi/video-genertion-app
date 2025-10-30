@@ -14,6 +14,7 @@ from app.core.logging import LoggerMixin
 from app.api.deps_auth import get_current_user
 from app.models.user import User
 from app.database.session import get_db
+from app.exceptions.custom_exceptions import ApiError
 from app.services.library_service import LibraryService
 from app.schemas.image_to_video import (
     AnalyzeImageRequest,
@@ -201,11 +202,23 @@ async def generate_video(
         
         return result
         
+    except ApiError as e:
+        logger.error(f"视频生成失败: {e.message}, 详情: {e.detail}")
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={
+                "message": e.message,
+                "detail": str(e.detail) if e.detail else None
+            }
+        )
     except Exception as e:
-        logger.error(f"视频生成失败: {str(e)}")
+        logger.error(f"视频生成失败: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"视频生成失败: {str(e)}"
+            detail={
+                "message": "视频生成失败",
+                "detail": str(e)
+            }
         )
 
 

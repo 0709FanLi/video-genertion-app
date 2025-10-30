@@ -79,6 +79,7 @@ class Settings(BaseSettings):
     request_timeout: int = 300
     task_poll_interval: int = 5
     max_retry_attempts: int = 3
+    enable_retry: bool = True  # 全局重试开关，False 时禁用所有重试
     
     # 日志配置
     log_level: str = "INFO"

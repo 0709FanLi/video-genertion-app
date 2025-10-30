@@ -457,6 +457,15 @@ export const authAPI = {
  */
 export const libraryAPI = {
   /**
+   * 获取各类内容总数
+   * @returns {Promise<Object>} 包含各类数量的对象: {prompts: number, images: number, videos: number}
+   */
+  getCounts: async () => {
+    const response = await apiClient.get('/api/library/counts');
+    return response.data;
+  },
+  
+  /**
    * 获取提示词历史
    * @param {Object} params - 查询参数
    * @param {number} params.page - 页码

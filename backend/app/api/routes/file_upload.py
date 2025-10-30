@@ -5,7 +5,8 @@
 
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.core.logging import get_logger
@@ -245,6 +246,73 @@ async def delete_file(path: str) -> DeleteResponse:
         
     except ApiError as e:
         logger.error(f"删除文件失败: {e.message}")
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"message": e.message, "detail": e.detail}
+        )
+    except Exception as e:
+        logger.error(f"未知错误: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={"message": "服务器内部错误", "detail": str(e)}
+        )
+
+
+@router.get(
+    "/download",
+    summary="代理下载文件",
+    description="通过代理下载OSS文件，解决CORS问题"
+)
+async def download_file_proxy(
+    url: str = Query(..., description="OSS文件URL")
+):
+    """代理下载文件API.
+    
+    从OSS下载文件并通过后端代理返回，解决前端CORS问题。
+    
+    Args:
+        url: OSS文件URL
+        
+    Returns:
+        文件流响应
+        
+    Raises:
+        HTTPException: 下载失败
+    """
+    try:
+        logger.info(f"收到代理下载请求: url={url[:100]}...")
+        
+        # 从OSS下载文件
+        file_content = oss_service.download_file(url)
+        
+        # 从URL中提取文件名
+        if '?' in url:
+            url = url.split('?')[0]
+        filename = url.split('/')[-1] or 'download'
+        
+        # 确定Content-Type
+        content_type = "application/octet-stream"
+        if filename.endswith('.mp4'):
+            content_type = "video/mp4"
+        elif filename.endswith(('.jpg', '.jpeg')):
+            content_type = "image/jpeg"
+        elif filename.endswith('.png'):
+            content_type = "image/png"
+        elif filename.endswith('.gif'):
+            content_type = "image/gif"
+        
+        # 返回文件流
+        from io import BytesIO
+        return StreamingResponse(
+            BytesIO(file_content),
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+        
+    except ApiError as e:
+        logger.error(f"代理下载失败: {e.message}")
         raise HTTPException(
             status_code=e.status_code,
             detail={"message": e.message, "detail": e.detail}

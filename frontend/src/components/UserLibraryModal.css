@@ -1,5 +1,76 @@
 /* 资源库弹窗样式 */
 
+/* Modal 固定高度 */
+.user-library-modal .ant-modal-body {
+  height: calc(100vh - 200px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 24px;
+}
+
+/* Tabs 容器 */
+.user-library-modal .ant-tabs {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Tabs 内容区域 */
+.user-library-modal .ant-tabs-content-holder {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-library-modal .ant-tabs-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-library-modal .ant-tabs-tabpane {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+}
+
+/* 滚动条样式 */
+.user-library-modal .ant-tabs-tabpane::-webkit-scrollbar {
+  width: 8px;
+}
+
+.user-library-modal .ant-tabs-tabpane::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.user-library-modal .ant-tabs-tabpane::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.user-library-modal .ant-tabs-tabpane::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* 分页容器居中 */
+.user-library-modal .pagination-container {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 16px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.user-library-modal .pagination-container .ant-pagination {
+  margin: 0 !important;
+}
+
 .library-card {
   transition: all 0.3s ease;
 }
@@ -52,13 +123,47 @@
   position: relative;
   overflow: hidden;
   background: #000;
+  border-radius: 8px 8px 0 0;
 }
 
 .video-card .video-cover:hover video {
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
 .video-card .video-cover video {
   transition: opacity 0.3s ease;
+  display: block;
+  cursor: pointer;
+}
+
+.video-card .video-cover video::-webkit-media-controls-panel {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.video-card .video-cover video::-webkit-media-controls-play-button {
+  display: flex;
+}
+
+/* 确保视频标签在卡片中正确显示 */
+.video-card .ant-card-cover {
+  overflow: hidden;
+}
+
+.video-card .ant-card-actions {
+  border-top: 1px solid #f0f0f0;
+}
+
+.video-card .ant-card-actions > li {
+  margin: 12px 0;
+}
+
+.video-card .ant-card-actions > li > span {
+  cursor: pointer;
+  font-size: 16px;
+  transition: color 0.3s;
+}
+
+.video-card .ant-card-actions > li > span:hover {
+  color: #1890ff;
 }
 

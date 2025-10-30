@@ -277,4 +277,35 @@ class LibraryService:
         ).limit(limit).all()
         
         return videos, total
+    
+    def get_user_counts(
+        self,
+        user_id: int
+    ) -> Dict[str, int]:
+        """获取用户各类内容的数量（不应用筛选）.
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            包含各类数量的字典: {'prompts': int, 'images': int, 'videos': int}
+        """
+        prompts_count = self.db.query(PromptHistory).filter(
+            PromptHistory.user_id == user_id
+        ).count()
+        
+        images_count = self.db.query(UserImage).filter(
+            UserImage.user_id == user_id
+        ).count()
+        
+        videos_count = self.db.query(UserVideo).filter(
+            UserVideo.user_id == user_id
+        ).count()
+        
+        return {
+            'prompts': prompts_count,
+            'images': images_count,
+            'videos': videos_count
+        }
 
+ 

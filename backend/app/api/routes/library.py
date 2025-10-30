@@ -3,7 +3,7 @@
 提供用户内容库查询功能，包括提示词历史、图片库、视频库。
 """
 
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
@@ -299,6 +299,32 @@ async def get_videos(
         page=page,
         limit=limit
     )
+
+
+@router.get(
+    "/counts",
+    summary="获取各类内容总数",
+    description="获取当前用户的提示词、图片、视频总数（不应用筛选）"
+)
+async def get_counts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Dict[str, int]:
+    """获取各类内容总数API.
+    
+    Args:
+        current_user: 当前登录用户
+        db: 数据库会话
+    
+    Returns:
+        包含各类数量的字典: {'prompts': int, 'images': int, 'videos': int}
+    """
+    logger.info(f"用户 {current_user.username} 查询内容总数")
+    
+    library_service = LibraryService(db)
+    counts = library_service.get_user_counts(user_id=current_user.id)
+    
+    return counts
 
 
 @router.get(

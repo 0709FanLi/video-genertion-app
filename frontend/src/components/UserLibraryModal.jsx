@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Tabs, Card, Row, Col, Spin, Empty, Input, Select, Tag, Image, Space, Button, Typography, Pagination, message } from 'antd';
-import { SearchOutlined, PictureOutlined, VideoCameraOutlined, FileTextOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons';
+import { SearchOutlined, PictureOutlined, VideoCameraOutlined, FileTextOutlined, DownloadOutlined, EyeOutlined, CheckOutlined } from '@ant-design/icons';
 import { libraryAPI } from '../services/api';
 import './UserLibraryModal.css';
 
@@ -14,12 +14,22 @@ const { Search } = Input;
 const { Option } = Select;
 const { Text, Paragraph } = Typography;
 
-const UserLibraryModal = ({ open, onClose }) => {
+const UserLibraryModal = ({ open, onClose, onSelectImage }) => {
   const [activeTab, setActiveTab] = useState('prompts');
   const [loading, setLoading] = useState(false);
+  const [promptsLoading, setPromptsLoading] = useState(false);
+  const [imagesLoading, setImagesLoading] = useState(false);
+  const [videosLoading, setVideosLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [modelFilter, setModelFilter] = useState(null);
   const [googleVeoOnly, setGoogleVeoOnly] = useState(false);
+  
+  // 缓存标识，记录哪些数据已加载
+  const [dataLoaded, setDataLoaded] = useState({
+    prompts: false,
+    images: false,
+    videos: false
+  });
   
   // 数据状态
   const [prompts, setPrompts] = useState([]);
@@ -39,9 +49,26 @@ const UserLibraryModal = ({ open, onClose }) => {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewContent, setPreviewContent] = useState(null);
 
+  // 加载各类内容总数（不应用筛选）
+  const loadCounts = useCallback(async () => {
+    try {
+      const counts = await libraryAPI.getCounts();
+      setPromptsTotal(counts.prompts || 0);
+      setImagesTotal(counts.images || 0);
+      setVideosTotal(counts.videos || 0);
+    } catch (error) {
+      console.error('加载总数失败:', error);
+    }
+  }, []);
+
   // 加载提示词历史
-  const loadPrompts = useCallback(async (page = 1) => {
-    setLoading(true);
+  const loadPrompts = useCallback(async (page = 1, force = false) => {
+    // 如果数据已加载且不是强制刷新，则跳过
+    if (!force && dataLoaded.prompts && page === promptsPage) {
+      return;
+    }
+    
+    setPromptsLoading(true);
     try {
       const response = await libraryAPI.getPrompts({
         page,
@@ -51,17 +78,23 @@ const UserLibraryModal = ({ open, onClose }) => {
       setPrompts(response.prompts || []);
       setPromptsTotal(response.total || 0);
       setPromptsPage(page);
+      setDataLoaded(prev => ({ ...prev, prompts: true }));
     } catch (error) {
       console.error('加载提示词失败:', error);
       message.error('加载提示词失败');
     } finally {
-      setLoading(false);
+      setPromptsLoading(false);
     }
-  }, [searchText, pageSize]);
+  }, [searchText, pageSize, dataLoaded.prompts, promptsPage]);
 
   // 加载图片库
-  const loadImages = useCallback(async (page = 1) => {
-    setLoading(true);
+  const loadImages = useCallback(async (page = 1, force = false) => {
+    // 如果数据已加载且不是强制刷新，则跳过
+    if (!force && dataLoaded.images && page === imagesPage) {
+      return;
+    }
+    
+    setImagesLoading(true);
     try {
       const response = await libraryAPI.getImages({
         page,
@@ -72,17 +105,23 @@ const UserLibraryModal = ({ open, onClose }) => {
       setImages(response.images || []);
       setImagesTotal(response.total || 0);
       setImagesPage(page);
+      setDataLoaded(prev => ({ ...prev, images: true }));
     } catch (error) {
       console.error('加载图片失败:', error);
       message.error('加载图片失败');
     } finally {
-      setLoading(false);
+      setImagesLoading(false);
     }
-  }, [searchText, modelFilter, pageSize]);
+  }, [searchText, modelFilter, pageSize, dataLoaded.images, imagesPage]);
 
   // 加载视频库
-  const loadVideos = useCallback(async (page = 1) => {
-    setLoading(true);
+  const loadVideos = useCallback(async (page = 1, force = false) => {
+    // 如果数据已加载且不是强制刷新，则跳过
+    if (!force && dataLoaded.videos && page === videosPage) {
+      return;
+    }
+    
+    setVideosLoading(true);
     try {
       const response = await libraryAPI.getVideos({
         page,
@@ -94,38 +133,55 @@ const UserLibraryModal = ({ open, onClose }) => {
       setVideos(response.videos || []);
       setVideosTotal(response.total || 0);
       setVideosPage(page);
+      setDataLoaded(prev => ({ ...prev, videos: true }));
     } catch (error) {
       console.error('加载视频失败:', error);
       message.error('加载视频失败');
     } finally {
-      setLoading(false);
+      setVideosLoading(false);
     }
-  }, [searchText, modelFilter, googleVeoOnly, pageSize]);
+  }, [searchText, modelFilter, googleVeoOnly, pageSize, dataLoaded.videos, videosPage]);
 
   // 打开弹窗时加载数据
   useEffect(() => {
     if (open) {
-      if (activeTab === 'prompts') {
-        loadPrompts(1);
-      } else if (activeTab === 'images') {
-        loadImages(1);
-      } else if (activeTab === 'videos') {
-        loadVideos(1);
+      // 如果有选择回调，默认切换到图片库
+      if (onSelectImage) {
+        setActiveTab('images');
       }
+      
+      // 先加载总数
+      loadCounts();
+    } else {
+      // 关闭弹窗时重置缓存
+      setDataLoaded({ prompts: false, images: false, videos: false });
     }
-  }, [open, activeTab, loadPrompts, loadImages, loadVideos]);
+  }, [open, onSelectImage]);
+  
+  // 监听 activeTab 变化，加载对应数据
+  useEffect(() => {
+    if (!open) return;
+    
+    if (activeTab === 'prompts' && !dataLoaded.prompts && !promptsLoading) {
+      loadPrompts(1);
+    } else if (activeTab === 'images' && !dataLoaded.images && !imagesLoading) {
+      loadImages(1);
+    } else if (activeTab === 'videos' && !dataLoaded.videos && !videosLoading) {
+      loadVideos(1);
+    }
+  }, [open, activeTab]);
 
-  // 搜索或筛选变化时重新加载
+  // 搜索或筛选变化时重新加载（强制刷新）
   useEffect(() => {
     if (!open) return;
     
     const timer = setTimeout(() => {
       if (activeTab === 'prompts') {
-        loadPrompts(1);
+        loadPrompts(1, true); // 强制刷新
       } else if (activeTab === 'images') {
-        loadImages(1);
+        loadImages(1, true); // 强制刷新
       } else if (activeTab === 'videos') {
-        loadVideos(1);
+        loadVideos(1, true); // 强制刷新
       }
     }, 500);
     return () => clearTimeout(timer);
@@ -156,66 +212,97 @@ const UserLibraryModal = ({ open, onClose }) => {
   };
 
   // 下载资源
-  const handleDownload = (url, filename) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
+  const handleDownload = async (url, filename) => {
+    try {
+      message.loading('正在下载...', 0);
+      
+      // 使用后端代理下载接口，避免CORS问题
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const downloadUrl = `${apiBaseUrl}/api/files/download?url=${encodeURIComponent(url)}`;
+      
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error('下载失败');
+      }
+      
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // 创建下载链接
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      
+      // 清理
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      
+      message.destroy();
+      message.success('下载成功');
+    } catch (error) {
+      message.destroy();
+      message.error('下载失败: ' + error.message);
+      console.error('下载失败:', error);
+    }
   };
 
   // 渲染提示词列表
   const renderPrompts = () => (
-    <div>
-      <Row gutter={[16, 16]}>
-        {prompts.map((prompt) => (
-          <Col xs={24} sm={24} md={12} lg={8} key={prompt.id}>
-            <Card
-              hoverable
-              className="library-card"
-              onClick={() => handlePreviewPrompt(prompt)}
-            >
-              <div className="prompt-card">
-                <div className="prompt-header">
-                  <FileTextOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    {new Date(prompt.created_at).toLocaleString('zh-CN')}
-                  </Text>
-                </div>
-                
-                {prompt.original_prompt && (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16 }}>
+        <Row gutter={[16, 16]}>
+          {prompts.map((prompt) => (
+            <Col xs={24} sm={24} md={12} lg={8} key={prompt.id}>
+              <Card
+                hoverable
+                className="library-card"
+                onClick={() => handlePreviewPrompt(prompt)}
+              >
+                <div className="prompt-card">
+                  <div className="prompt-header">
+                    <FileTextOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                      {new Date(prompt.created_at).toLocaleString('zh-CN')}
+                    </Text>
+                  </div>
+                  
+                  {prompt.original_prompt && (
+                    <div className="prompt-section">
+                      <Text strong>原始提示词：</Text>
+                      <Paragraph 
+                        ellipsis={{ rows: 2 }} 
+                        style={{ marginBottom: 8 }}
+                      >
+                        {prompt.original_prompt}
+                      </Paragraph>
+                    </div>
+                  )}
+                  
                   <div className="prompt-section">
-                    <Text strong>原始提示词：</Text>
-                    <Paragraph 
-                      ellipsis={{ rows: 2 }} 
-                      style={{ marginBottom: 8 }}
-                    >
-                      {prompt.original_prompt}
+                    <Text strong>优化后：</Text>
+                    <Paragraph ellipsis={{ rows: 3 }}>
+                      {prompt.optimized_prompt}
                     </Paragraph>
                   </div>
-                )}
-                
-                <div className="prompt-section">
-                  <Text strong>优化后：</Text>
-                  <Paragraph ellipsis={{ rows: 3 }}>
-                    {prompt.optimized_prompt}
-                  </Paragraph>
+                  
+                  <div className="prompt-footer">
+                    {prompt.optimization_model && (
+                      <Tag color="blue">{prompt.optimization_model}</Tag>
+                    )}
+                    {prompt.scene_type && (
+                      <Tag>{prompt.scene_type}</Tag>
+                    )}
+                  </div>
                 </div>
-                
-                <div className="prompt-footer">
-                  {prompt.optimization_model && (
-                    <Tag color="blue">{prompt.optimization_model}</Tag>
-                  )}
-                  {prompt.scene_type && (
-                    <Tag>{prompt.scene_type}</Tag>
-                  )}
-                </div>
-              </div>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </div>
       
-      <div style={{ marginTop: 24, textAlign: 'center' }}>
+      <div className="pagination-container">
         <Pagination
           current={promptsPage}
           pageSize={pageSize}
@@ -228,55 +315,85 @@ const UserLibraryModal = ({ open, onClose }) => {
     </div>
   );
 
+  // 处理选择图片
+  const handleSelectImage = (image) => {
+    if (onSelectImage) {
+      onSelectImage(image);
+    } else {
+      handlePreviewImage(image);
+    }
+  };
+
   // 渲染图片列表
   const renderImages = () => (
-    <div>
-      <Row gutter={[16, 16]}>
-        {images.map((image) => (
-          <Col xs={12} sm={8} md={6} lg={4} key={image.id}>
-            <Card
-              hoverable
-              className="library-card image-card"
-              cover={
-                <div className="image-cover">
-                  <Image
-                    src={image.image_url}
-                    alt="Generated Image"
-                    preview={false}
-                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                  />
-                </div>
-              }
-              actions={[
-                <EyeOutlined key="view" onClick={() => handlePreviewImage(image)} />,
-                <DownloadOutlined 
-                  key="download" 
-                  onClick={() => handleDownload(image.image_url, `image_${image.id}.png`)} 
-                />
-              ]}
-            >
-              <Card.Meta
-                description={
-                  <div>
-                    <Paragraph ellipsis={{ rows: 2 }} style={{ fontSize: '12px' }}>
-                      {image.prompt}
-                    </Paragraph>
-                    <div>
-                      {image.model && <Tag color="blue">{image.model}</Tag>}
-                      {image.resolution && <Tag>{image.resolution}</Tag>}
-                    </div>
-                    <Text type="secondary" style={{ fontSize: '11px' }}>
-                      {new Date(image.created_at).toLocaleDateString('zh-CN')}
-                    </Text>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16 }}>
+        <Row gutter={[16, 16]}>
+          {images.map((image) => (
+            <Col xs={12} sm={8} md={6} lg={4} key={image.id}>
+              <Card
+                hoverable
+                className="library-card image-card"
+                cover={
+                  <div className="image-cover">
+                    <Image
+                      src={image.image_url}
+                      alt="Generated Image"
+                      preview={false}
+                      style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                    />
                   </div>
                 }
-              />
-            </Card>
-          </Col>
-        ))}
-      </Row>
+                actions={[
+                  <EyeOutlined key="view" onClick={(e) => {
+                    e.stopPropagation();
+                    handlePreviewImage(image);
+                  }} />,
+                  onSelectImage ? (
+                    <CheckOutlined 
+                      key="select" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelectImage(image);
+                      }}
+                      style={{ color: '#1890ff', fontSize: '16px' }}
+                      title="选择此图片"
+                    />
+                  ) : (
+                    <DownloadOutlined 
+                      key="download" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const extension = image.image_url.split('.').pop()?.split('?')[0] || 'png';
+                        handleDownload(image.image_url, `image_${image.id}_${new Date(image.created_at).toISOString().split('T')[0]}.${extension}`);
+                      }} 
+                    />
+                  )
+                ]}
+              >
+                <Card.Meta
+                  description={
+                    <div>
+                      <Paragraph ellipsis={{ rows: 2 }} style={{ fontSize: '12px' }}>
+                        {image.prompt}
+                      </Paragraph>
+                      <div>
+                        {image.model && <Tag color="blue">{image.model}</Tag>}
+                        {image.resolution && <Tag>{image.resolution}</Tag>}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '11px' }}>
+                        {new Date(image.created_at).toLocaleDateString('zh-CN')}
+                      </Text>
+                    </div>
+                  }
+                />
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </div>
       
-      <div style={{ marginTop: 24, textAlign: 'center' }}>
+      <div className="pagination-container">
         <Pagination
           current={imagesPage}
           pageSize={pageSize}
@@ -291,61 +408,71 @@ const UserLibraryModal = ({ open, onClose }) => {
 
   // 渲染视频列表
   const renderVideos = () => (
-    <div>
-      <Row gutter={[16, 16]}>
-        {videos.map((video) => (
-          <Col xs={12} sm={8} md={6} lg={6} key={video.id}>
-            <Card
-              hoverable
-              className="library-card video-card"
-              cover={
-                <div className="video-cover">
-                  <video
-                    src={video.video_url}
-                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                    muted
-                  />
-                  {video.is_google_veo && (
-                    <Tag 
-                      color="gold" 
-                      style={{ position: 'absolute', top: 8, right: 8 }}
-                    >
-                      Google Veo
-                    </Tag>
-                  )}
-                </div>
-              }
-              actions={[
-                <EyeOutlined key="view" onClick={() => handlePreviewVideo(video)} />,
-                <DownloadOutlined 
-                  key="download" 
-                  onClick={() => handleDownload(video.video_url, `video_${video.id}.mp4`)} 
-                />
-              ]}
-            >
-              <Card.Meta
-                description={
-                  <div>
-                    <Paragraph ellipsis={{ rows: 2 }} style={{ fontSize: '12px' }}>
-                      {video.prompt}
-                    </Paragraph>
-                    <div>
-                      {video.model && <Tag color="blue">{video.model}</Tag>}
-                      {video.duration && <Tag>{video.duration}秒</Tag>}
-                      {video.resolution && <Tag>{video.resolution}</Tag>}
-                    </div>
-                    <Text type="secondary" style={{ fontSize: '11px' }}>
-                      {new Date(video.created_at).toLocaleDateString('zh-CN')}
-                    </Text>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16 }}>
+        <Row gutter={[16, 16]}>
+          {videos.map((video) => (
+            <Col xs={12} sm={8} md={6} lg={6} key={video.id}>
+              <Card
+                hoverable
+                className="library-card video-card"
+                cover={
+                  <div className="video-cover">
+                    <video
+                      src={video.video_url}
+                      controls
+                      style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                      preload="metadata"
+                      onMouseEnter={(e) => {
+                        // 鼠标悬停时预加载
+                        e.target.load();
+                      }}
+                    />
+                    {video.is_google_veo && (
+                      <Tag 
+                        color="gold" 
+                        style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
+                      >
+                        Google Veo
+                      </Tag>
+                    )}
                   </div>
                 }
-              />
-            </Card>
-          </Col>
-        ))}
-      </Row>
+                actions={[
+                  <EyeOutlined key="view" onClick={() => handlePreviewVideo(video)} />,
+                  <DownloadOutlined 
+                    key="download" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload(video.video_url, `video_${video.id}_${new Date(video.created_at).toISOString().split('T')[0]}.mp4`);
+                    }} 
+                  />
+                ]}
+              >
+                <Card.Meta
+                  description={
+                    <div>
+                      <Paragraph ellipsis={{ rows: 2 }} style={{ fontSize: '12px' }}>
+                        {video.prompt}
+                      </Paragraph>
+                      <div>
+                        {video.model && <Tag color="blue">{video.model}</Tag>}
+                        {video.duration && <Tag>{video.duration}秒</Tag>}
+                        {video.resolution && <Tag>{video.resolution}</Tag>}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '11px' }}>
+                        {new Date(video.created_at).toLocaleDateString('zh-CN')}
+                      </Text>
+                    </div>
+                  }
+                />
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </div>
       
-      <div style={{ marginTop: 24, textAlign: 'center' }}>
+      <div className="pagination-container">
         <Pagination
           current={videosPage}
           pageSize={pageSize}
@@ -368,7 +495,7 @@ const UserLibraryModal = ({ open, onClose }) => {
           提示词历史 ({promptsTotal})
         </span>
       ),
-      children: loading ? (
+      children: promptsLoading ? (
         <div style={{ textAlign: 'center', padding: '100px 0' }}>
           <Spin size="large" />
         </div>
@@ -386,7 +513,7 @@ const UserLibraryModal = ({ open, onClose }) => {
           图片库 ({imagesTotal})
         </span>
       ),
-      children: loading ? (
+      children: imagesLoading ? (
         <div style={{ textAlign: 'center', padding: '100px 0' }}>
           <Spin size="large" />
         </div>
@@ -404,7 +531,7 @@ const UserLibraryModal = ({ open, onClose }) => {
           视频库 ({videosTotal})
         </span>
       ),
-      children: loading ? (
+      children: videosLoading ? (
         <div style={{ textAlign: 'center', padding: '100px 0' }}>
           <Spin size="large" />
         </div>
@@ -425,10 +552,19 @@ const UserLibraryModal = ({ open, onClose }) => {
         footer={null}
         width={1200}
         style={{ top: 20 }}
-        styles={{ body: { padding: '24px', maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' } }}
+        styles={{ 
+          body: { 
+            padding: '24px', 
+            height: 'calc(100vh - 200px)', 
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          } 
+        }}
+        className="user-library-modal"
       >
         {/* 搜索和筛选栏 */}
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 24, flexShrink: 0 }}>
           <Space size="large">
             <Search
               placeholder="搜索内容..."
@@ -468,13 +604,16 @@ const UserLibraryModal = ({ open, onClose }) => {
           </Space>
         </div>
         
-        {/* Tab内容 */}
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          items={tabItems}
-          size="large"
-        />
+        {/* Tab内容区域，可滚动 */}
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={tabItems}
+            size="large"
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          />
+        </div>
       </Modal>
       
       {/* 预览弹窗 */}

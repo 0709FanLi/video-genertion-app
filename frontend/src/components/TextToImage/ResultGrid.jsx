@@ -12,6 +12,7 @@ import {
   InfoCircleOutlined 
 } from '@ant-design/icons';
 import useImageStore from '../../store/imageStore';
+import useVideoStore from '../../store/videoStore';
 import { useNavigate } from 'react-router-dom';
 
 const ResultGrid = () => {
@@ -24,6 +25,8 @@ const ResultGrid = () => {
     deleteGeneratedImage,
     clearGeneratedImages
   } = useImageStore();
+  
+  const { setFirstFrame } = useVideoStore();
   
   // 下载图片
   const handleDownload = async (imageUrl, index) => {
@@ -75,13 +78,66 @@ const ResultGrid = () => {
     });
   };
   
+  // 将图片URL转换为Base64（使用后端代理避免CORS问题）
+  const imageUrlToBase64 = async (url) => {
+    try {
+      // 使用后端代理下载接口
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const downloadUrl = `${apiBaseUrl}/api/files/download?url=${encodeURIComponent(url)}`;
+      
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error('下载图片失败');
+      }
+      
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
+      });
+    } catch (error) {
+      console.error('图片转换失败:', error);
+      throw error;
+    }
+  };
+  
   // 选择图片并跳转到图生视频
-  const handleSelectForVideo = (imageId) => {
-    selectImage(imageId);
-    message.success('已选择图片，正在跳转到图生视频页面...');
-    setTimeout(() => {
-      navigate('/image-to-video');
-    }, 500);
+  const handleSelectForVideo = async (imageId) => {
+    try {
+      selectImage(imageId);
+      const image = generatedImages.find(img => img.id === imageId);
+      
+      if (!image) {
+        message.error('图片不存在');
+        return;
+      }
+      
+      message.loading({ content: '正在加载图片...', key: 'loading-image', duration: 0 });
+      
+      // 将图片URL转换为Base64
+      const base64 = await imageUrlToBase64(image.url);
+      
+      message.destroy('loading-image');
+      
+      // 设置到图生视频的首帧
+      setFirstFrame({
+        url: image.url,
+        base64: base64,
+        objectKey: null, // 资源库图片没有objectKey
+        size: null // 资源库图片没有size信息
+      });
+      
+      message.success('已选择图片，正在跳转到图生视频页面...');
+      setTimeout(() => {
+        navigate('/image-to-video');
+      }, 500);
+    } catch (error) {
+      message.destroy('loading-image');
+      console.error('处理图片失败:', error);
+      message.error('处理图片失败，请重试');
+    }
   };
   
   // 格式化时间

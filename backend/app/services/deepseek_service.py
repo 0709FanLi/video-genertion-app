@@ -6,11 +6,11 @@
 from typing import Any, Dict, Optional
 
 import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.exceptions.custom_exceptions import ApiError
+from app.utils.retry_decorator import retry_decorator
 
 logger = get_logger(__name__)
 
@@ -32,11 +32,7 @@ class DeepSeekService:
         self.base_url = settings.deepseek_base_url
         self.timeout = settings.request_timeout
     
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True
-    )
+    @retry_decorator(max_attempts=3, wait_multiplier=1, wait_min=2, wait_max=10)
     async def optimize_prompt(
         self,
         user_prompt: str,

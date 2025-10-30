@@ -13,12 +13,13 @@ from typing import Any, Dict, Optional
 import httpx
 from google import genai
 from google.genai import types
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 from app.core.logging import LoggerMixin
 from app.exceptions import ApiError
+from app.exceptions.custom_exceptions import ApiError as CustomApiError
 from app.services.oss_service import oss_service
+from app.utils.retry_decorator import retry_decorator
 
 
 class GoogleVeoService(LoggerMixin):
@@ -51,11 +52,7 @@ class GoogleVeoService(LoggerMixin):
         
         self.logger.info("GoogleVeoService初始化完成")
     
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True
-    )
+    @retry_decorator(max_attempts=3, wait_multiplier=1, wait_min=2, wait_max=10)
     async def extend_video(
         self,
         video_url: str,
@@ -144,10 +141,20 @@ class GoogleVeoService(LoggerMixin):
             return result
             
         except Exception as e:
-            self.logger.error(f"视频扩展失败: {str(e)}")
+            error_str = str(e)
+            self.logger.error(f"视频扩展失败: {error_str}")
+            
+            # 检查是否是配额错误
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "quota" in error_str.lower():
+                raise ApiError(
+                    message="Google Veo API配额已用完",
+                    status_code=429,
+                    detail="API配额已用完，请检查您的配额限制或稍后重试。错误详情: " + error_str
+                )
+            
             raise ApiError(
                 message="视频扩展失败",
-                details=str(e)
+                detail=error_str
             )
     
     async def _download_video_from_oss(self, oss_url: str) -> str:
@@ -490,11 +497,7 @@ class GoogleVeoService(LoggerMixin):
             self.logger.error(f"Base64图片转换失败: {str(e)}")
             raise ApiError("Base64图片转换失败", detail=str(e))
     
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True
-    )
+    @retry_decorator(max_attempts=3, wait_multiplier=1, wait_min=2, wait_max=10)
     async def generate_text_to_video(
         self,
         prompt: str,
@@ -577,14 +580,20 @@ class GoogleVeoService(LoggerMixin):
             return result
             
         except Exception as e:
-            self.logger.error(f"文生视频失败: {str(e)}")
-            raise ApiError("文生视频失败", detail=str(e))
+            error_str = str(e)
+            self.logger.error(f"文生视频失败: {error_str}")
+            
+            # 检查是否是配额错误
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "quota" in error_str.lower():
+                raise ApiError(
+                    message="Google Veo API配额已用完",
+                    status_code=429,
+                    detail="API配额已用完，请检查您的配额限制或稍后重试。错误详情: " + error_str
+                )
+            
+            raise ApiError("文生视频失败", detail=error_str)
     
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True
-    )
+    @retry_decorator(max_attempts=3, wait_multiplier=1, wait_min=2, wait_max=10)
     async def generate_image_to_video_first(
         self,
         image_base64: str,
@@ -681,14 +690,20 @@ class GoogleVeoService(LoggerMixin):
             return result
             
         except Exception as e:
-            self.logger.error(f"单图首帧生成失败: {str(e)}")
-            raise ApiError("单图首帧生成失败", detail=str(e))
+            error_str = str(e)
+            self.logger.error(f"单图首帧生成失败: {error_str}")
+            
+            # 检查是否是配额错误
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "quota" in error_str.lower():
+                raise ApiError(
+                    message="Google Veo API配额已用完",
+                    status_code=429,
+                    detail="API配额已用完，请检查您的配额限制或稍后重试。错误详情: " + error_str
+                )
+            
+            raise ApiError("单图首帧生成失败", detail=error_str)
     
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True
-    )
+    @retry_decorator(max_attempts=3, wait_multiplier=1, wait_min=2, wait_max=10)
     async def generate_image_to_video_first_tail(
         self,
         first_image_base64: str,
@@ -781,8 +796,18 @@ class GoogleVeoService(LoggerMixin):
             return result
             
         except Exception as e:
-            self.logger.error(f"首尾帧插值生成失败: {str(e)}")
-            raise ApiError("首尾帧插值生成失败", detail=str(e))
+            error_str = str(e)
+            self.logger.error(f"首尾帧插值生成失败: {error_str}")
+            
+            # 检查是否是配额错误
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "quota" in error_str.lower():
+                raise ApiError(
+                    message="Google Veo API配额已用完",
+                    status_code=429,
+                    detail="API配额已用完，请检查您的配额限制或稍后重试。错误详情: " + error_str
+                )
+            
+            raise ApiError("首尾帧插值生成失败", detail=error_str)
 
 
 # 全局服务实例

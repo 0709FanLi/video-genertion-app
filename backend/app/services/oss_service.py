@@ -399,6 +399,65 @@ class OSSService:
         else:
             return self._get_signed_url(object_key, expires)
     
+    def download_file(self, url: str) -> bytes:
+        """下载文件（通过URL或object_key）.
+        
+        Args:
+            url: OSS文件URL或object_key
+            
+        Returns:
+            文件内容（字节）
+            
+        Raises:
+            ApiError: 下载失败
+        """
+        try:
+            # 从URL中提取object_key
+            # URL格式: https://bucket.oss-cn-shanghai.aliyuncs.com/path/to/file
+            # 或直接是 object_key
+            if url.startswith('http'):
+                # 从完整URL中提取object_key
+                # 例如: https://tool251027.oss-cn-shanghai.aliyuncs.com/videos/2025/10/30/file.mp4
+                # 匹配模式: https://bucket.oss-cn-region.aliyuncs.com/path
+                parts = url.split('.aliyuncs.com/')
+                if len(parts) > 1:
+                    object_key = parts[1].split('?')[0]  # 移除查询参数
+                else:
+                    # 尝试其他格式
+                    import re
+                    match = re.search(r'/([^/]+/[^?]+)', url)
+                    if match:
+                        object_key = match.group(1)
+                    else:
+                        raise ApiError("无法从URL提取object_key", detail=f"URL格式不正确: {url}")
+            else:
+                # 直接是object_key
+                object_key = url
+            
+            logger.info(f"从OSS下载文件: object_key={object_key}")
+            
+            # 从OSS下载文件
+            result = self.bucket.get_object(object_key)
+            file_content = result.read()
+            
+            file_size_mb = len(file_content) / 1024 / 1024
+            logger.info(f"文件下载成功，大小: {file_size_mb:.2f}MB")
+            
+            return file_content
+            
+        except OssError as e:
+            logger.error(f"OSS下载失败: {e}")
+            raise ApiError(
+                message="下载文件失败",
+                detail=f"OSS错误: {str(e)}"
+            )
+        except Exception as e:
+            logger.error(f"下载文件异常: {e}")
+            raise ApiError(
+                message="下载文件失败",
+                detail=str(e)
+            )
+    
     def health_check(self) -> bool:
         """健康检查.
         

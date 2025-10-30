@@ -1,0 +1,134 @@
+提示	输出：butterfly_video
+一只折纸蝴蝶拍打着翅膀，从法式落地门飞到花园里。	折纸蝴蝶拍打着翅膀，从法式落地门飞到花园里。
+Python
+
+import time
+from google import genai
+
+client = genai.Client()
+
+prompt = "Track the butterfly into the garden as it lands on an orange origami flower. A fluffy white puppy runs up and gently pats the flower."
+
+operation = client.models.generate_videos(
+    model="veo-3.1-generate-preview",
+    video=butterfly_video,
+    prompt=prompt,
+    config=types.GenerateVideosConfig(
+        number_of_videos=1,
+        resolution="720p"
+    ),
+)
+
+# Poll the operation status until the video is ready.
+while not operation.done:
+    print("Waiting for video generation to complete...")
+    time.sleep(10)
+    operation = client.operations.get(operation)
+
+# Download the video.
+video = operation.response.generated_videos[0]
+client.files.download(file=video.video)
+video.video.save("veo3.1_extension.mp4")
+print("Generated video saved to veo3.1_extension.mp4")
+
+
+如需了解如何编写有效的文本提示来生成视频，请参阅 Veo 提示指南。
+
+处理异步操作
+生成视频是一项计算密集型任务。当您向 API 发送请求时，它会启动一个长时间运行的作业，并立即返回一个 operation 对象。然后，您必须进行轮询，直到视频准备就绪（以 done 状态为 true 表示）。
+
+此流程的核心是一个轮询循环，用于定期检查作业的状态。
+
+Python
+JavaScript
+
+import time
+from google import genai
+from google.genai import types
+
+client = genai.Client()
+
+# After starting the job, you get an operation object.
+operation = client.models.generate_videos(
+    model="veo-3.1-generate-preview",
+    prompt="A cinematic shot of a majestic lion in the savannah.",
+)
+
+# Alternatively, you can use operation.name to get the operation.
+operation = types.GenerateVideosOperation(name=operation.name)
+
+# This loop checks the job status every 10 seconds.
+while not operation.done:
+    time.sleep(10)
+    # Refresh the operation object to get the latest status.
+    operation = client.operations.get(operation)
+
+# Once done, the result is in operation.response.
+# ... process and download your video ...
+Veo API 参数和规范
+您可以在 API 请求中设置以下参数来控制视频生成过程。
+
+参数	说明	Veo 3.1 和 Veo 3.1 Fast	Veo 3 和 Veo 3 Fast	Veo 2
+prompt	视频的文字说明。支持音频提示。	string	string	string
+negativePrompt	描述视频中不应包含的内容的文字。	string	string	string
+image	要添加动画效果的初始图片。	Image 对象	Image 对象	Image 对象
+lastFrame	插值视频要过渡到的最终图片。必须与 image 参数搭配使用。	Image 对象	Image 对象	Image 对象
+referenceImages	最多三张图片，用作风格和内容参考。	VideoGenerationReferenceImage 对象（仅限 Veo 3.1）	无	无
+video	用于视频广告附加信息的视频。	Video 对象	无	无
+aspectRatio	视频的宽高比。	"16:9"（默认，720p 和 1080p）、
+"9:16"（720p 和 1080p）
+
+"16:9"（默认，720p 和 1080p）、
+"9:16"（720p 和 1080p）	"16:9"（默认，720p）、
+"9:16" (720p)
+resolution	视频的宽高比。	"720p"（默认）、
+"1080p"（仅支持 8 秒时长）
+
+"720p" 仅适用于扩展程序	"720p"（默认）、
+"1080p"（仅限 16:9）	不支持
+durationSeconds	生成的视频的时长。	"4"，"6"，"8"。
+
+使用扩展或插值时（同时支持 16:9 和 9:16）以及使用 referenceImages 时（仅支持 16:9），必须为“8”	"4"、"6"、"8"	"5"、"6"、"8"
+personGeneration	控制人物生成。
+（有关地区限制，请参阅限制）	文生视频和扩展功能：仅限
+"allow_all" 图生视频、插帧和参考图片：仅限
+"allow_adult"
+文生视频：仅限
+"allow_all" 图生视频：仅限
+"allow_adult"
+文生视频：
+"allow_all"、"allow_adult"、"dont_allow" 图生视频：
+"allow_adult"和 "dont_allow"
+请注意，seed 参数也适用于 Veo 3 模型。它不能保证确定性，但可以略微提高确定性。
+
+您可以在请求中设置参数，自定义视频生成。 例如，您可以指定 negativePrompt 来引导模型。
+
+Python
+JavaScript
+Go
+REST
+
+import time
+from google import genai
+from google.genai import types
+
+client = genai.Client()
+
+operation = client.models.generate_videos(
+    model="veo-3.1-generate-preview",
+    prompt="A cinematic shot of a majestic lion in the savannah.",
+    config=types.GenerateVideosConfig(negative_prompt="cartoon, drawing, low quality"),
+)
+
+# Poll the operation status until the video is ready.
+while not operation.done:
+    print("Waiting for video generation to complete...")
+    time.sleep(10)
+    operation = client.operations.get(operation)
+
+# Download the generated video.
+generated_video = operation.response.generated_videos[0]
+client.files.download(file=generated_video.video)
+generated_video.video.save("parameters_example.mp4")
+print("Generated video saved to parameters_example.mp4")
+

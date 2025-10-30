@@ -7,12 +7,12 @@ import asyncio
 from typing import Any, Optional
 
 import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 from app.core.logging import LoggerMixin
 from app.exceptions import DashScopeApiError, TaskFailedError, TaskTimeoutError
 from app.services.oss_service import oss_service
+from app.utils.retry_decorator import retry_decorator
 
 
 class WanxKf2vService(LoggerMixin):
@@ -50,11 +50,7 @@ class WanxKf2vService(LoggerMixin):
             "X-DashScope-Async": "enable"  # 必须设置为异步模式
         }
     
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True
-    )
+    @retry_decorator(max_attempts=3, wait_multiplier=1, wait_min=2, wait_max=10)
     async def _create_task(
         self,
         model: str,

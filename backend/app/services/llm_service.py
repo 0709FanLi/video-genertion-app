@@ -7,11 +7,11 @@ import json
 from typing import Any
 
 from openai import OpenAI
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 from app.core.logging import LoggerMixin
 from app.exceptions import DashScopeApiError
+from app.utils.retry_decorator import retry_decorator
 
 
 class LLMService(LoggerMixin):
@@ -31,11 +31,7 @@ class LLMService(LoggerMixin):
         )
         self.logger.info("LLMService初始化完成")
     
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True
-    )
+    @retry_decorator(max_attempts=3, wait_multiplier=1, wait_min=2, wait_max=10)
     def _call_api(
         self,
         system_prompt: str,

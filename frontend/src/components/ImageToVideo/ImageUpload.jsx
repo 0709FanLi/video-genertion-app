@@ -4,14 +4,16 @@
  */
 
 import React, { useState } from 'react';
-import { Upload, Card, Button, Image, message } from 'antd';
+import { Upload, Card, Button, Image, message, Space } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
-  CloudUploadOutlined
+  CloudUploadOutlined,
+  FolderOutlined
 } from '@ant-design/icons';
 import useVideoStore from '../../store/videoStore';
 import { fileUploadAPI } from '../../services/api';
+import UserLibraryModal from '../UserLibraryModal';
 
 const ImageUpload = () => {
   const {
@@ -21,6 +23,10 @@ const ImageUpload = () => {
     setLastFrame,
     selectedModel
   } = useVideoStore();
+  
+  // 资源库弹窗状态
+  const [libraryModalOpen, setLibraryModalOpen] = useState(false);
+  const [selectingFrame, setSelectingFrame] = useState(null); // 'first' or 'last'
   
   // 是否需要图片（文生视频模型不需要）
   const isTextToVideo = selectedModel === 'volc-t2v';
@@ -64,6 +70,77 @@ const ImageUpload = () => {
       reader.onload = () => resolve(reader.result);
       reader.onerror = (error) => reject(error);
     });
+  };
+  
+  /**
+   * 将图片URL转换为Base64（使用后端代理避免CORS问题）
+   */
+  const imageUrlToBase64 = async (url) => {
+    try {
+      // 使用后端代理下载接口
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const downloadUrl = `${apiBaseUrl}/api/files/download?url=${encodeURIComponent(url)}`;
+      
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error('下载图片失败');
+      }
+      
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
+      });
+    } catch (error) {
+      console.error('图片转换失败:', error);
+      throw error;
+    }
+  };
+  
+  /**
+   * 从资源库选择图片
+   */
+  const handleSelectFromLibrary = (frameType) => {
+    setSelectingFrame(frameType);
+    setLibraryModalOpen(true);
+  };
+  
+  /**
+   * 处理从资源库选择的图片
+   */
+  const handleLibraryImageSelect = async (image) => {
+    try {
+      message.loading({ content: '正在加载图片...', key: 'loading-library-image', duration: 0 });
+      
+      // 将图片URL转换为Base64
+      const base64 = await imageUrlToBase64(image.image_url);
+      
+      message.destroy('loading-library-image');
+      
+      const frameData = {
+        url: image.image_url,
+        base64: base64,
+        objectKey: null, // 资源库图片没有objectKey
+        size: image.file_size || null
+      };
+      
+      if (selectingFrame === 'first') {
+        setFirstFrame(frameData);
+        message.success('已选择首帧图片');
+      } else if (selectingFrame === 'last') {
+        setLastFrame(frameData);
+        message.success('已选择尾帧图片');
+      }
+      
+      setLibraryModalOpen(false);
+      setSelectingFrame(null);
+    } catch (error) {
+      message.destroy('loading-library-image');
+      console.error('加载图片失败:', error);
+      message.error('加载图片失败，请重试');
+    }
   };
   
   /**
@@ -180,21 +257,40 @@ const ImageUpload = () => {
   /**
    * 渲染上传区域
    */
-  const renderUploadArea = (frame, onUpload, onDelete, title, description) => (
+  const renderUploadArea = (frame, onUpload, onDelete, title, description, frameType) => (
     <Card
       title={title}
       variant="borderless"
       styles={{ body: { padding: '16px' } }}
       extra={
-        frame && (
+        frame ? (
+          <Space>
+            <Button
+              type="text"
+              size="small"
+              icon={<FolderOutlined />}
+              onClick={() => handleSelectFromLibrary(frameType)}
+            >
+              更换
+            </Button>
+            <Button
+              type="text"
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+              onClick={onDelete}
+            >
+              删除
+            </Button>
+          </Space>
+        ) : (
           <Button
             type="text"
-            danger
             size="small"
-            icon={<DeleteOutlined />}
-            onClick={onDelete}
+            icon={<FolderOutlined />}
+            onClick={() => handleSelectFromLibrary(frameType)}
           >
-            删除
+            从资源库选择
           </Button>
         )
       }
@@ -214,9 +310,11 @@ const ImageUpload = () => {
               mask: '查看大图'
             }}
           />
-          <div style={{ marginTop: '8px', color: '#666', fontSize: '12px' }}>
-            {frame.file.name} ({(frame.file.size / 1024).toFixed(1)} KB)
-          </div>
+          {frame.file && (
+            <div style={{ marginTop: '8px', color: '#666', fontSize: '12px' }}>
+              {frame.file.name} ({(frame.file.size / 1024).toFixed(1)} KB)
+            </div>
+          )}
         </div>
       ) : (
         // 显示上传区域
@@ -241,25 +339,39 @@ const ImageUpload = () => {
   );
   
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: needLastFrame ? '1fr 1fr' : '1fr', gap: '16px' }}>
-      {/* 首帧上传 */}
-      {renderUploadArea(
-        firstFrame,
-        handleFirstFrameUpload,
-        handleDeleteFirstFrame,
-        '首帧图片',
-        '点击或拖拽上传首帧图片'
-      )}
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: needLastFrame ? '1fr 1fr' : '1fr', gap: '16px' }}>
+        {/* 首帧上传 */}
+        {renderUploadArea(
+          firstFrame,
+          handleFirstFrameUpload,
+          handleDeleteFirstFrame,
+          '首帧图片',
+          '点击或拖拽上传首帧图片',
+          'first'
+        )}
+        
+        {/* 尾帧上传（可选） */}
+        {needLastFrame && renderUploadArea(
+          lastFrame,
+          handleLastFrameUpload,
+          handleDeleteLastFrame,
+          '尾帧图片',
+          '点击或拖拽上传尾帧图片',
+          'last'
+        )}
+      </div>
       
-      {/* 尾帧上传（可选） */}
-      {needLastFrame && renderUploadArea(
-        lastFrame,
-        handleLastFrameUpload,
-        handleDeleteLastFrame,
-        '尾帧图片',
-        '点击或拖拽上传尾帧图片'
-      )}
-    </div>
+      {/* 资源库弹窗 */}
+      <UserLibraryModal
+        open={libraryModalOpen}
+        onClose={() => {
+          setLibraryModalOpen(false);
+          setSelectingFrame(null);
+        }}
+        onSelectImage={handleLibraryImageSelect}
+      />
+    </>
   );
 };
 
