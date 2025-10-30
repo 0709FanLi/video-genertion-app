@@ -1,0 +1,64 @@
+/* 资源库弹窗样式 */
+
+.library-card {
+  transition: all 0.3s ease;
+}
+
+.library-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 提示词卡片 */
+.prompt-card {
+  min-height: 200px;
+}
+
+.prompt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.prompt-section {
+  margin-bottom: 12px;
+}
+
+.prompt-footer {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 图片卡片 */
+.image-card .image-cover {
+  position: relative;
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.image-card .image-cover:hover img {
+  transform: scale(1.1);
+}
+
+.image-card .image-cover img {
+  transition: transform 0.3s ease;
+}
+
+/* 视频卡片 */
+.video-card .video-cover {
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+.video-card .video-cover:hover video {
+  opacity: 0.8;
+}
+
+.video-card .video-cover video {
+  transition: opacity 0.3s ease;
+}
+

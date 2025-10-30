@@ -1,105 +1,90 @@
-INFO:     Started server process [75594]
+INFO:     Started server process [6464]
 INFO:     Waiting for application startup.
-2025-10-29 22:35:58,509 - app.main - INFO - AI视频创作工作流系统 v1.0.0 启动中...
-2025-10-29 22:35:58,509 - app.main - INFO - 调试模式: False
+2025-10-29 23:11:55,488 - app.main - INFO - AI视频创作工作流系统 v1.0.0 启动中...
+2025-10-29 23:11:55,488 - app.main - INFO - 调试模式: False
 ✅ 数据库表创建成功
-2025-10-29 22:35:58,510 - app.main - INFO - 数据库初始化成功
+2025-10-29 23:11:55,489 - app.main - INFO - 数据库初始化成功
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-2025-10-29 22:35:59,243 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:60894 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-2025-10-29 22:35:59,247 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:60894 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60900 - "GET /health HTTP/1.1" 200 OK
-2025-10-29 22:39:22,172 - app.api.deps_auth - INFO - 收到Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsa...
-2025-10-29 22:39:22,176 - app.api.deps_auth - INFO - Token解码结果: username='li12345' user_id=2
-2025-10-29 22:39:22,191 - app.api.deps_auth - INFO - 查询用户: user_id=2, found=True
-2025-10-29 22:39:22,191 - app.api.deps_auth - INFO - 用户状态: is_active=True
-2025-10-29 22:39:22,191 - app.api.deps_auth - INFO - 认证成功: username=li12345
-INFO:     127.0.0.1:61867 - "POST /api/auth/logout HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61867 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61867 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61867 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
-2025-10-29 22:39:23,869 - app.api.deps_auth - INFO - 收到Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsa...
-2025-10-29 22:39:23,869 - app.api.deps_auth - INFO - Token解码结果: username='li12345' user_id=2
-2025-10-29 22:39:23,870 - app.api.deps_auth - INFO - 查询用户: user_id=2, found=True
-2025-10-29 22:39:23,870 - app.api.deps_auth - INFO - 用户状态: is_active=True
-2025-10-29 22:39:23,870 - app.api.deps_auth - INFO - 认证成功: username=li12345
-INFO:     127.0.0.1:61874 - "GET /api/auth/me HTTP/1.1" 200 OK
-2025-10-29 22:39:23,929 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:61874 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-2025-10-29 22:39:23,930 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:61874 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61952 - "OPTIONS /api/text-to-image/optimize-prompt HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61952 - "POST /api/text-to-image/optimize-prompt HTTP/1.1" 403 Forbidden
-INFO:     127.0.0.1:61954 - "POST /api/text-to-image/optimize-prompt HTTP/1.1" 403 Forbidden
-2025-10-29 22:42:35,143 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:62790 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-2025-10-29 22:43:00,803 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:62910 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-2025-10-29 22:43:00,806 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:62910 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62910 - "OPTIONS /api/auth/logout HTTP/1.1" 200 OK
-2025-10-29 22:43:02,526 - app.api.deps_auth - INFO - 收到Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsa...
-2025-10-29 22:43:02,527 - app.api.deps_auth - INFO - Token解码结果: username='li12345' user_id=2
-2025-10-29 22:43:02,533 - app.api.deps_auth - INFO - 查询用户: user_id=2, found=True
-2025-10-29 22:43:02,533 - app.api.deps_auth - INFO - 用户状态: is_active=True
-2025-10-29 22:43:02,533 - app.api.deps_auth - INFO - 认证成功: username=li12345
-INFO:     127.0.0.1:62910 - "POST /api/auth/logout HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62910 - "POST /api/auth/login HTTP/1.1" 200 OK
-2025-10-29 22:43:06,208 - app.api.deps_auth - INFO - 收到Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsa...
-2025-10-29 22:43:06,208 - app.api.deps_auth - INFO - Token解码结果: username='li12345' user_id=2
-2025-10-29 22:43:06,209 - app.api.deps_auth - INFO - 查询用户: user_id=2, found=True
-2025-10-29 22:43:06,209 - app.api.deps_auth - INFO - 用户状态: is_active=True
-2025-10-29 22:43:06,209 - app.api.deps_auth - INFO - 认证成功: username=li12345
-INFO:     127.0.0.1:62910 - "GET /api/auth/me HTTP/1.1" 200 OK
-2025-10-29 22:43:06,255 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:62910 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-2025-10-29 22:43:06,256 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:62910 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63227 - "POST /api/text-to-image/optimize-prompt HTTP/1.1" 403 Forbidden
-INFO:     127.0.0.1:63590 - "OPTIONS /api/text-to-image/models HTTP/1.1" 200 OK
-2025-10-29 22:45:20,138 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:63590 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-2025-10-29 22:45:43,282 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:63592 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-2025-10-29 22:45:43,282 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:63592 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-2025-10-29 22:45:44,835 - app.api.deps_auth - INFO - 收到Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsa...
-2025-10-29 22:45:44,836 - app.api.deps_auth - INFO - Token解码结果: username='li12345' user_id=2
-2025-10-29 22:45:44,837 - app.api.deps_auth - INFO - 查询用户: user_id=2, found=True
-2025-10-29 22:45:44,838 - app.api.deps_auth - INFO - 用户状态: is_active=True
-2025-10-29 22:45:44,838 - app.api.deps_auth - INFO - 认证成功: username=li12345
-INFO:     127.0.0.1:63592 - "POST /api/auth/logout HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63592 - "POST /api/auth/login HTTP/1.1" 200 OK
-2025-10-29 22:45:46,589 - app.api.deps_auth - INFO - 收到Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsa...
-2025-10-29 22:45:46,589 - app.api.deps_auth - INFO - Token解码结果: username='li12345' user_id=2
-2025-10-29 22:45:46,589 - app.api.deps_auth - INFO - 查询用户: user_id=2, found=True
-2025-10-29 22:45:46,589 - app.api.deps_auth - INFO - 用户状态: is_active=True
-2025-10-29 22:45:46,589 - app.api.deps_auth - INFO - 认证成功: username=li12345
-INFO:     127.0.0.1:63592 - "GET /api/auth/me HTTP/1.1" 200 OK
-2025-10-29 22:45:46,634 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:63592 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-2025-10-29 22:45:46,635 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:63592 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-INFO:     127.0.0.1:63765 - "OPTIONS /api/text-to-image/optimize-prompt HTTP/1.1" 200 OK
-2025-10-29 22:45:55,497 - app.api.deps_auth - INFO - 收到Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsa...
-2025-10-29 22:45:55,497 - app.api.deps_auth - INFO - Token解码结果: username='li12345' user_id=2
-2025-10-29 22:45:55,498 - app.api.deps_auth - INFO - 查询用户: user_id=2, found=True
-2025-10-29 22:45:55,499 - app.api.deps_auth - INFO - 用户状态: is_active=True
-2025-10-29 22:45:55,499 - app.api.deps_auth - INFO - 认证成功: username=li12345
-2025-10-29 22:45:55,501 - app.api.routes.text_to_image - INFO - 收到提示词优化请求: model=qwen-plus, prompt=小猫在小狗旁边...
-2025-10-29 22:45:55,501 - LLMService - INFO - 生成图片提示词，用户想法: 小猫在小狗旁边
-2025-10-29 22:45:55,502 - LLMService - INFO - 调用通义千问API
-2025-10-29 22:46:08,145 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
-2025-10-29 22:46:08,162 - LLMService - INFO - 通义千问API调用成功
-2025-10-29 22:46:08,162 - LLMService - INFO - 成功生成3个图片提示词
-2025-10-29 22:46:08,162 - app.api.routes.text_to_image - INFO - 提示词优化成功: 一只毛茸茸的白色小猫蜷缩在棕色斑点小狗的身旁，背景是一片阳光洒落的春日花园，嫩绿的草地泛着光，花瓣随风飘落。柔和的自然光从左侧斜照，勾勒出它们温暖的轮廓，画面采用温馨治愈的日系插画风格，构图采用中心对...
-2025-10-29 22:46:08,168 - app.services.library_service - INFO - 保存提示词历史: user_id=2, model=qwen-plus, scene=text_to_image
-INFO:     127.0.0.1:63765 - "POST /api/text-to-image/optimize-prompt HTTP/1.1" 200 OK
-2025-10-29 22:47:27,142 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:64212 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-2025-10-29 22:48:38,144 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:64551 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
-2025-10-29 22:48:42,129 - app.api.routes.text_to_image - INFO - 获取模型列表
-INFO:     127.0.0.1:64551 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55172 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55631 - "OPTIONS /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-29 23:13:42,952 - app.api.routes.library - INFO - 用户 li12345 查询提示词历史: page=1, limit=12, search=None
+INFO:     127.0.0.1:55631 - "GET /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55695 - "OPTIONS /api/library/images?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-29 23:13:56,537 - app.api.routes.library - INFO - 用户 li12345 查询图片库: page=1, limit=12, search=None, model=None
+INFO:     127.0.0.1:55695 - "GET /api/library/images?page=1&limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55695 - "OPTIONS /api/library/videos?page=1&limit=12&google_veo_only=false HTTP/1.1" 200 OK
+2025-10-29 23:13:57,179 - app.api.routes.library - INFO - 用户 li12345 查询视频库: page=1, limit=12, search=None, model=None, google_veo_only=False
+INFO:     127.0.0.1:55697 - "GET /api/library/videos?page=1&limit=12&google_veo_only=false HTTP/1.1" 200 OK
+2025-10-29 23:13:58,488 - app.api.routes.library - INFO - 用户 li12345 查询图片库: page=1, limit=12, search=None, model=None
+INFO:     127.0.0.1:55697 - "GET /api/library/images?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-29 23:13:59,212 - app.api.routes.library - INFO - 用户 li12345 查询提示词历史: page=1, limit=12, search=None
+INFO:     127.0.0.1:55697 - "GET /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-29 23:14:00,516 - app.api.routes.library - INFO - 用户 li12345 查询图片库: page=1, limit=12, search=None, model=None
+INFO:     127.0.0.1:55697 - "GET /api/library/images?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-29 23:14:01,759 - app.api.routes.library - INFO - 用户 li12345 查询视频库: page=1, limit=12, search=None, model=None, google_veo_only=False
+INFO:     127.0.0.1:55697 - "GET /api/library/videos?page=1&limit=12&google_veo_only=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54304 - "OPTIONS /api/library/images?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:29:54,789 - app.api.routes.library - INFO - 用户 li12345 查询图片库: page=1, limit=12, search=None, model=None
+INFO:     127.0.0.1:54304 - "GET /api/library/images?page=1&limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54304 - "OPTIONS /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:29:55,340 - app.api.routes.library - INFO - 用户 li12345 查询提示词历史: page=1, limit=12, search=None
+INFO:     127.0.0.1:54306 - "GET /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:30:06,244 - app.api.routes.library - INFO - 用户 li12345 查询图片库: page=1, limit=12, search=None, model=None
+INFO:     127.0.0.1:54358 - "GET /api/library/images?page=1&limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54358 - "OPTIONS /api/library/videos?page=1&limit=12&google_veo_only=false HTTP/1.1" 200 OK
+2025-10-30 09:30:06,710 - app.api.routes.library - INFO - 用户 li12345 查询视频库: page=1, limit=12, search=None, model=None, google_veo_only=False
+INFO:     127.0.0.1:54358 - "GET /api/library/videos?page=1&limit=12&google_veo_only=false HTTP/1.1" 200 OK
+2025-10-30 09:39:30,210 - app.api.routes.library - INFO - 用户 li12345 查询图片库: page=1, limit=12, search=None, model=None
+INFO:     127.0.0.1:57139 - "GET /api/library/images?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:39:30,707 - app.api.routes.library - INFO - 用户 li12345 查询提示词历史: page=1, limit=12, search=None
+INFO:     127.0.0.1:57139 - "GET /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57992 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57992 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57992 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57994 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57994 - "OPTIONS /api/text-to-image/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57992 - "OPTIONS /api/text-to-image/models HTTP/1.1" 200 OK
+2025-10-30 09:42:03,866 - app.api.routes.text_to_image - INFO - 获取模型列表
+INFO:     127.0.0.1:57992 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
+2025-10-30 09:42:03,867 - app.api.routes.text_to_image - INFO - 获取模型列表
+INFO:     127.0.0.1:57992 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
+2025-10-30 09:43:03,788 - app.api.routes.text_to_image - INFO - 获取模型列表
+INFO:     127.0.0.1:58532 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
+2025-10-30 09:43:03,790 - app.api.routes.text_to_image - INFO - 获取模型列表
+INFO:     127.0.0.1:58532 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58532 - "OPTIONS /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:43:05,281 - app.api.routes.library - INFO - 用户 li12345 查询提示词历史: page=1, limit=12, search=None
+INFO:     127.0.0.1:58532 - "GET /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:43:05,782 - app.api.routes.library - INFO - 用户 li12345 查询提示词历史: page=1, limit=12, search=None
+INFO:     127.0.0.1:58532 - "GET /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:43:13,869 - app.api.routes.library - INFO - 用户 li12345 查询提示词历史: page=1, limit=12, search=None
+INFO:     127.0.0.1:58558 - "GET /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:43:14,374 - app.api.routes.library - INFO - 用户 li12345 查询提示词历史: page=1, limit=12, search=None
+INFO:     127.0.0.1:58558 - "GET /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:43:19,344 - app.api.routes.text_to_image - INFO - 获取模型列表
+INFO:     127.0.0.1:58558 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
+2025-10-30 09:43:19,345 - app.api.routes.text_to_image - INFO - 获取模型列表
+INFO:     127.0.0.1:58558 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
+2025-10-30 09:43:19,802 - app.api.routes.library - INFO - 用户 li12345 查询提示词历史: page=1, limit=12, search=None
+INFO:     127.0.0.1:58558 - "GET /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:43:20,308 - app.api.routes.library - INFO - 用户 li12345 查询提示词历史: page=1, limit=12, search=None
+INFO:     127.0.0.1:58558 - "GET /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58917 - "OPTIONS /api/library/images?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:43:41,597 - app.api.routes.library - INFO - 用户 li12345 查询图片库: page=1, limit=12, search=None, model=None
+INFO:     127.0.0.1:58917 - "GET /api/library/images?page=1&limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58917 - "OPTIONS /api/library/videos?page=1&limit=12&google_veo_only=false HTTP/1.1" 200 OK
+2025-10-30 09:43:42,050 - app.api.routes.library - INFO - 用户 li12345 查询视频库: page=1, limit=12, search=None, model=None, google_veo_only=False
+INFO:     127.0.0.1:58919 - "GET /api/library/videos?page=1&limit=12&google_veo_only=false HTTP/1.1" 200 OK
+2025-10-30 09:43:42,551 - app.api.routes.library - INFO - 用户 li12345 查询视频库: page=1, limit=12, search=None, model=None, google_veo_only=False
+INFO:     127.0.0.1:58919 - "GET /api/library/videos?page=1&limit=12&google_veo_only=false HTTP/1.1" 200 OK
+2025-10-30 09:43:47,815 - app.api.routes.library - INFO - 用户 li12345 查询视频库: page=1, limit=12, search=None, model=None, google_veo_only=False
+INFO:     127.0.0.1:58971 - "GET /api/library/videos?page=1&limit=12&google_veo_only=false HTTP/1.1" 200 OK
+2025-10-30 09:43:48,320 - app.api.routes.library - INFO - 用户 li12345 查询视频库: page=1, limit=12, search=None, model=None, google_veo_only=False
+INFO:     127.0.0.1:58971 - "GET /api/library/videos?page=1&limit=12&google_veo_only=false HTTP/1.1" 200 OK
+2025-10-30 09:43:49,555 - app.api.routes.library - INFO - 用户 li12345 查询图片库: page=1, limit=12, search=None, model=None
+INFO:     127.0.0.1:58971 - "GET /api/library/images?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:43:50,007 - app.api.routes.library - INFO - 用户 li12345 查询提示词历史: page=1, limit=12, search=None
+INFO:     127.0.0.1:58971 - "GET /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK
+2025-10-30 09:43:50,510 - app.api.routes.library - INFO - 用户 li12345 查询提示词历史: page=1, limit=12, search=None
+INFO:     127.0.0.1:58971 - "GET /api/library/prompts?page=1&limit=12 HTTP/1.1" 200 OK

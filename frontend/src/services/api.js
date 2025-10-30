@@ -452,5 +452,63 @@ export const authAPI = {
   }
 };
 
+/**
+ * 资源库API
+ */
+export const libraryAPI = {
+  /**
+   * 获取提示词历史
+   * @param {Object} params - 查询参数
+   * @param {number} params.page - 页码
+   * @param {number} params.limit - 每页数量
+   * @param {string} params.search - 搜索关键词
+   * @returns {Promise<Object>} 提示词列表
+   */
+  getPrompts: async ({ page = 1, limit = 20, search } = {}) => {
+    const params = { page, limit };
+    if (search) params.search = search;
+    
+    const response = await apiClient.get('/api/library/prompts', { params });
+    return response.data;
+  },
+  
+  /**
+   * 获取图片库
+   * @param {Object} params - 查询参数
+   * @param {number} params.page - 页码
+   * @param {number} params.limit - 每页数量
+   * @param {string} params.search - 搜索关键词
+   * @param {string} params.model - 筛选模型
+   * @returns {Promise<Object>} 图片列表
+   */
+  getImages: async ({ page = 1, limit = 20, search, model } = {}) => {
+    const params = { page, limit };
+    if (search) params.search = search;
+    if (model) params.model = model;
+    
+    const response = await apiClient.get('/api/library/images', { params });
+    return response.data;
+  },
+  
+  /**
+   * 获取视频库
+   * @param {Object} params - 查询参数
+   * @param {number} params.page - 页码
+   * @param {number} params.limit - 每页数量
+   * @param {string} params.search - 搜索关键词
+   * @param {string} params.model - 筛选模型
+   * @param {boolean} params.google_veo_only - 仅显示Google Veo视频
+   * @returns {Promise<Object>} 视频列表
+   */
+  getVideos: async ({ page = 1, limit = 20, search, model, google_veo_only = false } = {}) => {
+    const params = { page, limit, google_veo_only };
+    if (search) params.search = search;
+    if (model) params.model = model;
+    
+    const response = await apiClient.get('/api/library/videos', { params });
+    return response.data;
+  }
+};
+
 export default apiClient;
 

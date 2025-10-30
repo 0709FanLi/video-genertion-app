@@ -77,6 +77,7 @@ const Login = () => {
                 prefix={<UserOutlined />}
                 placeholder="用户名"
                 disabled={isLoading}
+                autoComplete="username"
               />
             </Form.Item>
 
@@ -91,6 +92,7 @@ const Login = () => {
                 prefix={<LockOutlined />}
                 placeholder="密码"
                 disabled={isLoading}
+                autoComplete="current-password"
               />
             </Form.Item>
 

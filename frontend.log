@@ -3,23 +3,18 @@
 > vite
 
 
-  VITE v7.1.12  ready in 81 ms
+  VITE v7.1.12  ready in 79 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
-10:42:34 PM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx, /src/components/VideoExtension/index.jsx, /src/components/TextToImage/index.jsx, /src/components/common/Header.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/components/ProtectedRoute.jsx, /src/components/UserMenu.jsx, /src/components/ImageToVideo/ImageUpload.jsx, /src/components/ImageToVideo/PromptInput.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/TextToImage/PromptInput.jsx
-10:45:19 PM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx, /src/components/VideoExtension/index.jsx, /src/components/TextToImage/index.jsx, /src/components/common/Header.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/components/ProtectedRoute.jsx, /src/components/UserMenu.jsx, /src/components/ImageToVideo/ImageUpload.jsx, /src/components/ImageToVideo/PromptInput.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/TextToImage/PromptInput.jsx
-10:47:26 PM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx, /src/components/VideoExtension/index.jsx, /src/components/TextToImage/index.jsx, /src/components/common/Header.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/components/ProtectedRoute.jsx, /src/components/UserMenu.jsx, /src/components/ImageToVideo/ImageUpload.jsx, /src/components/ImageToVideo/PromptInput.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/TextToImage/PromptInput.jsx
-10:48:37 PM [vite] (client) hmr update /src/components/LibraryModal/index.jsx, /src/components/LibraryModal/PromptTab.jsx, /src/components/LibraryModal/VideoTab.jsx, /src/components/LibraryModal/ImageTab.jsx
-10:48:37 PM [vite] (client) hmr update /src/components/LibraryModal/index.jsx
-10:48:37 PM [vite] (client) hmr update /src/components/LibraryModal/PromptTab.jsx
-10:48:37 PM [vite] (client) hmr update /src/components/LibraryModal/ImageTab.jsx
-10:48:37 PM [vite] (client) hmr update /src/components/LibraryModal/VideoTab.jsx
-10:48:37 PM [vite] (client) hmr update /src/components/LibraryModal/styles.css
-10:48:37 PM [vite] (client) hmr update /src/components/TextToImage/PromptInput.jsx
-10:48:37 PM [vite] (client) hmr update /src/components/VideoExtension/VideoUpload.jsx
-10:48:37 PM [vite] (client) hmr update /src/components/VideoExtension/ExtensionPromptInput.jsx
-10:48:37 PM [vite] (client) hmr update /src/pages/Register.jsx
-10:48:37 PM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx, /src/components/VideoExtension/index.jsx, /src/components/TextToImage/index.jsx, /src/components/common/Header.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/components/ProtectedRoute.jsx, /src/components/UserMenu.jsx, /src/components/ImageToVideo/ImageUpload.jsx, /src/components/ImageToVideo/PromptInput.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/TextToImage/PromptInput.jsx
-10:48:37 PM [vite] (client) hmr update /src/components/common/Header.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/components/ProtectedRoute.jsx, /src/components/UserMenu.jsx
-10:48:41 PM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx, /src/components/VideoExtension/index.jsx, /src/components/TextToImage/index.jsx, /src/components/common/Header.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/components/ProtectedRoute.jsx, /src/components/UserMenu.jsx, /src/components/ImageToVideo/ImageUpload.jsx, /src/components/ImageToVideo/PromptInput.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/TextToImage/PromptInput.jsx
+9:40:20 AM [vite] (client) hmr update /src/pages/Login.jsx
+9:40:23 AM [vite] (client) hmr update /src/pages/Register.jsx
+9:40:26 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
+9:40:30 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
+9:40:33 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
+9:40:35 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
+9:42:58 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
+9:43:13 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
+9:44:20 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
+9:44:20 AM [vite] (client) hmr update /src/pages/Login.jsx
+9:44:20 AM [vite] (client) hmr update /src/pages/Register.jsx

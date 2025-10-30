@@ -2,16 +2,18 @@
  * 页面头部组件
  */
 
-import React from 'react';
-import { Layout, Menu, Typography } from 'antd';
+import React, { useState } from 'react';
+import { Layout, Menu, Typography, Button, Space, Tooltip } from 'antd';
 import { 
   PictureOutlined, 
   VideoCameraOutlined, 
   ExpandOutlined,
-  HomeOutlined
+  HomeOutlined,
+  FolderOpenOutlined
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import UserMenu from '../UserMenu';
+import UserLibraryModal from '../UserLibraryModal';
 import useAuthStore from '../../store/authStore';
 
 const { Header: AntHeader } = Layout;
@@ -21,6 +23,7 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
+  const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
   
   // 导航菜单项
   const menuItems = [
@@ -84,12 +87,34 @@ const Header = () => {
         }}
       />
       
-      {/* 用户菜单 */}
+      {/* 右侧按钮组 */}
       {isAuthenticated && (
-        <div style={{ marginLeft: 'auto' }}>
+        <Space size="middle" style={{ marginLeft: 'auto' }}>
+          {/* 资源库按钮 */}
+          <Tooltip title="我的资源库">
+            <Button
+              type="text"
+              icon={<FolderOpenOutlined style={{ fontSize: '18px' }} />}
+              onClick={() => setIsLibraryModalOpen(true)}
+              style={{ 
+                color: 'rgba(255, 255, 255, 0.65)',
+                padding: '4px 15px'
+              }}
+            >
+              资源库
+            </Button>
+          </Tooltip>
+          
+          {/* 用户菜单 */}
           <UserMenu />
-        </div>
+        </Space>
       )}
+      
+      {/* 资源库弹窗 */}
+      <UserLibraryModal
+        open={isLibraryModalOpen}
+        onClose={() => setIsLibraryModalOpen(false)}
+      />
     </AntHeader>
   );
 };

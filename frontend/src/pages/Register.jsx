@@ -83,6 +83,7 @@ const Register = () => {
                 prefix={<UserOutlined />}
                 placeholder="用户名（3-20个字符）"
                 disabled={isLoading}
+                autoComplete="username"
               />
             </Form.Item>
 
@@ -98,6 +99,7 @@ const Register = () => {
                 prefix={<LockOutlined />}
                 placeholder="密码（6-20个字符）"
                 disabled={isLoading}
+                autoComplete="new-password"
               />
             </Form.Item>
 
@@ -120,6 +122,7 @@ const Register = () => {
                 prefix={<LockOutlined />}
                 placeholder="确认密码"
                 disabled={isLoading}
+                autoComplete="new-password"
               />
             </Form.Item>
 

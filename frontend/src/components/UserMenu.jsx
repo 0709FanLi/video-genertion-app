@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Dropdown, Button, Space, Avatar, message } from 'antd';
-import { UserOutlined, LogoutOutlined, FolderOpenOutlined } from '@ant-design/icons';
+import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 
@@ -32,18 +32,6 @@ const UserMenu = () => {
         </div>
       ),
       disabled: true
-    },
-    {
-      type: 'divider'
-    },
-    {
-      key: 'library',
-      label: '我的资源库',
-      icon: <FolderOpenOutlined />,
-      onClick: () => {
-        // TODO: 打开资源库弹窗
-        message.info('资源库功能开发中...');
-      }
     },
     {
       type: 'divider'
