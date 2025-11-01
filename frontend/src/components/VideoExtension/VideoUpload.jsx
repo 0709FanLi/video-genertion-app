@@ -7,7 +7,7 @@ import React, { useRef, useState } from 'react';
 import { Card, Button, Space, message, Alert } from 'antd';
 import { SelectOutlined, DeleteOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import useVideoExtensionStore from '../../store/videoExtensionStore';
-import LibraryModal from '../LibraryModal';
+import UserLibraryModal from '../UserLibraryModal';
 
 const VideoUpload = () => {
   const {
@@ -27,30 +27,26 @@ const VideoUpload = () => {
   /**
    * 从资源库选择视频
    */
-  const handleSelectFromLibrary = (selection) => {
-    if (selection.type === 'video') {
-      const video = selection.data;
-      
-      // 检查Google Veo兼容性
-      if (needsGoogleVeo && !video.is_google_veo) {
-        message.warning('Google Veo 视频延长仅支持延长由其生成的视频，请选择带有 Google Veo 标记的视频');
-        return;
-      }
-      
-      // 保存到store
-      const videoData = {
-        url: video.video_url,
-        name: video.prompt || '已保存的视频',
-        model: video.model,
-        duration: video.duration,
-        resolution: video.resolution,
-        is_google_veo: video.is_google_veo
-      };
-      
-      setOriginalVideo(videoData);
-      setIsLibraryOpen(false);
-      message.success('已选择视频');
+  const handleSelectFromLibrary = (video) => {
+    // 检查Google Veo兼容性
+    if (needsGoogleVeo && !video.is_google_veo) {
+      message.warning('Google Veo 视频延长仅支持延长由其生成的视频，请选择带有 Google Veo 标记的视频');
+      return;
     }
+    
+    // 保存到store
+    const videoData = {
+      url: video.video_url,
+      name: video.prompt || '已保存的视频',
+      model: video.model,
+      duration: video.duration,
+      resolution: video.resolution,
+      is_google_veo: video.is_google_veo
+    };
+    
+    setOriginalVideo(videoData);
+    setIsLibraryOpen(false);
+    message.success('已选择视频');
   };
   
   /**
@@ -102,13 +98,13 @@ const VideoUpload = () => {
               block
               onClick={() => setIsLibraryOpen(true)}
             >
-              从视频库选择
+              从资源库选择
             </Button>
             
             <div style={{ fontSize: '12px', color: '#666', textAlign: 'center' }}>
-              💡 提示：请从已生成的视频库中选择要延长的视频
+              💡 提示：请从资源库中选择要延长的视频
               {needsGoogleVeo && <div style={{ color: '#1890ff', marginTop: 4 }}>
-                ⚠️ 当前模型需要选择 Google Veo 生成的视频
+                ⚠️ 当前模型仅支持延长 Google Veo 生成的视频
               </div>}
             </div>
           </>
@@ -148,11 +144,10 @@ const VideoUpload = () => {
     </Card>
     
     {/* 资源库弹窗 */}
-    <LibraryModal 
-      isOpen={isLibraryOpen}
+    <UserLibraryModal 
+      open={isLibraryOpen}
       onClose={() => setIsLibraryOpen(false)}
-      onSelect={handleSelectFromLibrary}
-      selectMode="video"
+      onSelectVideo={handleSelectFromLibrary}
       googleVeoOnlyMode={needsGoogleVeo}
     />
     </>

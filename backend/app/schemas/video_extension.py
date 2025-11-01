@@ -32,6 +32,27 @@ class VideoExtensionRequest(BaseModel):
         pattern="^(16:9|9:16)$"
     )
     
+    duration: Optional[int] = Field(
+        default=8,
+        description="视频时长（秒），可选值：4、6、8",
+        ge=4,
+        le=8
+    )
+    
+    @field_validator("duration")
+    @classmethod
+    def validate_duration(cls, v: Optional[int]) -> Optional[int]:
+        """验证时长只能是4、6、8秒."""
+        if v is not None and v not in [4, 6, 8]:
+            raise ValueError("duration必须是4、6或8秒")
+        return v
+    
+    resolution: Optional[str] = Field(
+        default="720p",
+        description="视频分辨率",
+        pattern="^(720p|1080p)$"
+    )
+    
     negative_prompt: Optional[str] = Field(
         default=None,
         description="反向提示词（可选）",

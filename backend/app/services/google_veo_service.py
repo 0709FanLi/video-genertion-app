@@ -8,7 +8,8 @@
 import asyncio
 import os
 import tempfile
-from typing import Any, Dict, Optional
+from io import BytesIO
+from typing import Any, Dict, Optional, Union
 
 import httpx
 from google import genai
@@ -58,78 +59,98 @@ class GoogleVeoService(LoggerMixin):
         video_url: str,
         prompt: str,
         aspect_ratio: str = "16:9",
-        negative_prompt: Optional[str] = None
+        negative_prompt: Optional[str] = None,
+        duration: int = 8,
+        resolution: str = "720p",
+        google_file_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """扩展视频.
         
         基于原始视频和提示词生成扩展内容。
         
         Args:
-            video_url: 原始视频的OSS URL
+            video_url: 原始视频的OSS URL（如果 google_file_id 为 None，则使用此 URL）
             prompt: 扩展描述提示词
             aspect_ratio: 视频长宽比，可选"16:9"或"9:16"（默认"16:9"）
             negative_prompt: 反向提示词（可选）
+            duration: 视频时长（4/6/8秒），默认8秒
+            resolution: 分辨率（720p/1080p），默认720p
+            google_file_id: Google File ID（如果提供，直接使用，不需要从 OSS 下载）
             
         Returns:
-            包含扩展视频信息的字典:
-            {
-                "extended_video_url": str,  # 扩展后视频OSS URL
-                "original_video_url": str,  # 原始视频URL
-                "prompt": str,
-                "duration": int,  # 固定8秒
-                "resolution": str,  # 固定720p
-                "aspect_ratio": str,
-                "model": str
-            }
+            包含扩展视频信息的字典
             
         Raises:
             ApiError: API调用失败
         """
         self.logger.info(
             f"开始视频扩展: video_url={video_url[:100]}, "
-            f"aspect_ratio={aspect_ratio}, prompt_length={len(prompt)}"
+            f"aspect_ratio={aspect_ratio}, duration={duration}s, "
+            f"resolution={resolution}, prompt_length={len(prompt)}, "
+            f"google_file_id={google_file_id}"
         )
         
         try:
-            # 步骤1: 从OSS下载视频到临时文件
-            temp_video_path = await self._download_video_from_oss(video_url)
+            # 步骤1: 获取或创建 Google Video 对象（⚠️ 关键：必须是 Video 对象，不是 File 对象）
+            if google_file_id:
+                # 如果提供了 google_file_id，创建 Video 对象
+                # Video 对象的 uri 格式是 "files/xxx"，这就是 File ID
+                self.logger.info(f"使用保存的 Google File ID 创建 Video 对象: {google_file_id}")
+                google_video = types.Video(uri=google_file_id)
+            else:
+                # 否则从 OSS 下载并上传到 Google
+                self.logger.info("从 OSS 下载视频并上传到 Google")
+                temp_video_path = await self._download_video_from_oss(video_url)
+                google_file = await self._upload_video_to_google(temp_video_path)
+                # 从 File 对象构造 Video 对象（Video 对象的 uri 就是 File 的 name）
+                google_video = types.Video(uri=google_file.name)
+                # 清理临时文件
+                self._cleanup_temp_files([temp_video_path])
             
-            # 步骤2: 上传视频到Google
-            google_video = await self._upload_video_to_google(temp_video_path)
-            
-            # 步骤3: 创建视频扩展任务
+            # 步骤2: 创建视频扩展任务
             operation = await self._create_extension_task(
                 video=google_video,
                 prompt=prompt,
                 aspect_ratio=aspect_ratio,
-                negative_prompt=negative_prompt
+                negative_prompt=negative_prompt,
+                duration=duration,
+                resolution=resolution
             )
             
-            # 步骤4: 轮询任务状态直到完成
+            # 步骤3: 轮询任务状态直到完成
             completed_operation = await self._poll_operation(operation)
             
-            # 步骤5: 下载扩展后的视频
+            # 步骤4: 下载扩展后的视频
             extended_video = completed_operation.response.generated_videos[0]
-            extended_video_path = await self._download_video_from_google(
-                extended_video.video
-            )
+            video_obj = extended_video.video  # Video 对象，不是 File 对象
+            extended_video_path = await self._download_video_from_google(video_obj)
             
-            # 步骤6: 上传扩展后的视频到OSS
+            # 步骤5: 上传扩展后的视频到OSS
             extended_video_url = await self._upload_video_to_oss(
                 extended_video_path,
-                aspect_ratio
+                aspect_ratio,
+                prefix="veo_extended"
             )
             
-            # 步骤7: 清理临时文件
-            self._cleanup_temp_files([temp_video_path, extended_video_path])
+            # 步骤6: 清理临时文件
+            self._cleanup_temp_files([extended_video_path])
+            
+            # 获取 Google File ID：Video 对象使用 uri，File 对象使用 name
+            google_file_id = None
+            if isinstance(video_obj, types.Video):
+                # Video 对象的 uri 格式是 "files/xxx"，这就是 File ID
+                google_file_id = video_obj.uri if video_obj.uri else None
+            else:
+                google_file_id = getattr(video_obj, 'name', None)
             
             # 构建返回结果
             result = {
                 "extended_video_url": extended_video_url,
+                "google_file_id": google_file_id,  # 保存扩展后的 Google File ID
                 "original_video_url": video_url,
                 "prompt": prompt,
-                "duration": 8,  # Veo 3.1扩展固定8秒
-                "resolution": "720p",  # 扩展固定720p
+                "duration": duration,
+                "resolution": resolution,
                 "aspect_ratio": aspect_ratio,
                 "model": self.model
             }
@@ -212,33 +233,54 @@ class GoogleVeoService(LoggerMixin):
             
             # 在线程池中运行同步操作
             loop = asyncio.get_event_loop()
-            google_file = await loop.run_in_executor(
-                None,
-                lambda: self.client.files.upload(path=video_path)
-            )
+            
+            def upload_video():
+                """同步上传视频的辅助函数"""
+                # Google GenAI SDK 的 files.upload 使用 file 和 config 参数
+                # mime_type 在 config 中设置
+                from google.genai import types
+                try:
+                    return self.client.files.upload(
+                        file=video_path,
+                        config=types.UploadFileConfig(mime_type="video/mp4")
+                    )
+                except Exception as e:
+                    error_msg = f"无法上传视频: {e}"
+                    self.logger.error(error_msg)
+                    raise TypeError(error_msg)
+            
+            google_file = await loop.run_in_executor(None, upload_video)
             
             self.logger.info(f"视频上传Google成功: {google_file.name}")
             
             return google_file
             
         except Exception as e:
-            self.logger.error(f"上传视频到Google失败: {str(e)}")
-            raise ApiError("上传视频到Google失败", detail=str(e))
+            error_detail = str(e)
+            self.logger.error(f"上传视频到Google失败: {error_detail}", exc_info=True)
+            raise ApiError("上传视频到Google失败", detail=error_detail)
     
     async def _create_extension_task(
         self,
-        video: types.File,
+        video: types.Video,
         prompt: str,
         aspect_ratio: str,
-        negative_prompt: Optional[str]
+        negative_prompt: Optional[str],
+        duration: int = 8,
+        resolution: str = "720p"
     ) -> types.GenerateVideosOperation:
         """创建视频扩展任务.
         
+        ⚠️ 重要：video 参数必须是 types.Video 对象，不能是 types.File 对象！
+        Video 对象包含完整的视频上下文信息，确保扩展视频与原始视频连贯。
+        
         Args:
-            video: Google视频对象
-            prompt: 扩展提示词
-            aspect_ratio: 长宽比
+            video: Google Video 对象（⚠️ 必须是 Video 对象，不是 File 对象）
+            prompt: 扩展提示词（描述接下来发生的事情）
+            aspect_ratio: 长宽比（必须与原视频一致）
             negative_prompt: 反向提示词
+            duration: 视频时长（4/6/8秒），扩展时通常为8秒
+            resolution: 分辨率（720p/1080p，必须与原视频一致）
             
         Returns:
             异步操作对象
@@ -247,14 +289,18 @@ class GoogleVeoService(LoggerMixin):
             ApiError: 创建任务失败
         """
         try:
-            self.logger.info(f"创建视频扩展任务: aspect_ratio={aspect_ratio}")
+            self.logger.info(
+                f"创建视频扩展任务: aspect_ratio={aspect_ratio}, "
+                f"duration={duration}s, resolution={resolution}, "
+                f"video_uri={video.uri if hasattr(video, 'uri') else 'N/A'}"
+            )
             
             # 构建配置
             config = types.GenerateVideosConfig(
                 number_of_videos=1,
-                resolution="720p",
+                resolution=resolution,
                 aspect_ratio=aspect_ratio,
-                duration_seconds=8
+                duration_seconds=duration
             )
             
             # 添加反向提示词（如果提供）
@@ -262,12 +308,15 @@ class GoogleVeoService(LoggerMixin):
                 config.negative_prompt = negative_prompt
             
             # 创建任务（在线程池中运行）
+            # ⚠️ 关键：generate_videos 的 video 参数必须是 types.Video 对象
+            # Video 对象包含视频的完整上下文信息，确保扩展视频连贯
             loop = asyncio.get_event_loop()
+            
             operation = await loop.run_in_executor(
                 None,
                 lambda: self.client.models.generate_videos(
                     model=self.model,
-                    video=video,
+                    video=video,  # ✅ 传递 Video 对象（不是 File 对象）
                     prompt=prompt,
                     config=config
                 )
@@ -328,12 +377,12 @@ class GoogleVeoService(LoggerMixin):
     
     async def _download_video_from_google(
         self,
-        google_video: types.File
+        google_video: Union[types.File, types.Video]
     ) -> str:
         """从Google下载视频到本地.
         
         Args:
-            google_video: Google视频对象
+            google_video: Google视频对象（File 或 Video）
             
         Returns:
             本地临时文件路径
@@ -343,7 +392,11 @@ class GoogleVeoService(LoggerMixin):
         """
         try:
             # 尝试获取视频标识信息
-            video_id = getattr(google_video, 'name', None) or getattr(google_video, 'uri', 'unknown')
+            # Video 对象使用 uri，File 对象使用 name
+            if isinstance(google_video, types.Video):
+                video_id = google_video.uri or 'unknown'
+            else:
+                video_id = getattr(google_video, 'name', None) or 'unknown'
             self.logger.info(f"从Google下载视频: {video_id}")
             
             # 创建临时文件
@@ -355,7 +408,7 @@ class GoogleVeoService(LoggerMixin):
             # generated_video.video.save("parameters_example.mp4")
             loop = asyncio.get_event_loop()
             
-            # 先调用 download 获取数据
+            # 先调用 download 获取数据（这会设置 Video.video_bytes）
             await loop.run_in_executor(
                 None,
                 lambda: self.client.files.download(file=google_video)
@@ -382,13 +435,15 @@ class GoogleVeoService(LoggerMixin):
     async def _upload_video_to_oss(
         self,
         video_path: str,
-        aspect_ratio: str
+        aspect_ratio: str,
+        prefix: str = "veo"
     ) -> str:
         """上传视频到OSS.
         
         Args:
             video_path: 本地视频文件路径
             aspect_ratio: 视频长宽比（用于文件命名）
+            prefix: 文件名前缀，默认为"veo"（可选：veo, veo_extended, veo_t2v, veo_i2v_first, veo_i2v_tail）
             
         Returns:
             OSS视频URL
@@ -403,15 +458,15 @@ class GoogleVeoService(LoggerMixin):
             from datetime import datetime
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             ratio_tag = aspect_ratio.replace(":", "x")  # 16:9 -> 16x9
-            filename = f"veo_extended_{ratio_tag}_{timestamp}.mp4"
+            filename = f"{prefix}_{ratio_tag}_{timestamp}.mp4"
             
             # 读取视频文件
             with open(video_path, "rb") as f:
                 video_bytes = f.read()
             
-            # 上传到OSS
-            oss_result = await oss_service.upload_file(
-                file_bytes=video_bytes,
+            # 上传到OSS（upload_file是同步方法，不需要await）
+            oss_result = oss_service.upload_file(
+                file_data=BytesIO(video_bytes),
                 filename=filename,
                 content_type="video/mp4",
                 category="videos"
@@ -444,6 +499,68 @@ class GoogleVeoService(LoggerMixin):
             except Exception as e:
                 self.logger.warning(f"清理临时文件失败: {path}, 错误: {e}")
     
+    async def _base64_to_google_image(self, image_base64: str) -> types.Image:
+        """将Base64图片转换为Google Image对象.
+        
+        Args:
+            image_base64: Base64编码的图片 (格式: data:image/{type};base64,{data})
+            
+        Returns:
+            Google Image对象
+            
+        Raises:
+            ApiError: 转换失败
+        """
+        try:
+            import base64
+            
+            self.logger.info("转换Base64图片到Google Image...")
+            
+            # 解析Base64数据和MIME类型
+            if "base64," in image_base64:
+                # 格式: data:image/png;base64,{data}
+                header, base64_data = image_base64.split("base64,", 1)
+                # 提取MIME类型
+                if "data:image/" in header:
+                    mime_type = header.split("data:image/")[1].split(";")[0]
+                    mime_type = f"image/{mime_type}"
+                else:
+                    mime_type = "image/png"  # 默认
+            else:
+                base64_data = image_base64
+                mime_type = "image/png"  # 默认
+            
+            # 移除可能的空白字符
+            base64_data = base64_data.strip()
+            
+            # 解码
+            try:
+                image_bytes = base64.b64decode(base64_data, validate=True)
+            except Exception as decode_error:
+                self.logger.error(f"Base64解码失败: {str(decode_error)}")
+                raise ApiError("Base64数据格式错误，无法解码", detail=str(decode_error))
+            
+            if len(image_bytes) == 0:
+                raise ApiError("Base64解码后数据为空", detail="解码的图片数据为空")
+            
+            self.logger.info(f"Base64解码成功，图片大小: {len(image_bytes) / 1024:.2f}KB, mime_type: {mime_type}")
+            
+            # 创建 Image 对象
+            google_image = types.Image(
+                image_bytes=image_bytes,
+                mime_type=mime_type
+            )
+            
+            return google_image
+            
+        except ApiError:
+            # 重新抛出ApiError
+            raise
+        except Exception as e:
+            error_detail = str(e)
+            self.logger.error(f"Base64图片转换失败: {error_detail}", exc_info=True)
+            raise ApiError("Base64图片转换失败", detail=error_detail)
+    
     async def _base64_to_google_file(self, image_base64: str) -> types.File:
         """将Base64图片转换为Google File对象.
         
@@ -458,6 +575,7 @@ class GoogleVeoService(LoggerMixin):
         """
         try:
             import base64
+            from io import BytesIO
             
             self.logger.info("转换Base64图片到Google File...")
             
@@ -467,35 +585,69 @@ class GoogleVeoService(LoggerMixin):
             else:
                 base64_data = image_base64
             
+            # 移除可能的空白字符
+            base64_data = base64_data.strip()
+            
             # 解码
-            image_bytes = base64.b64decode(base64_data)
+            try:
+                image_bytes = base64.b64decode(base64_data, validate=True)
+            except Exception as decode_error:
+                self.logger.error(f"Base64解码失败: {str(decode_error)}")
+                raise ApiError("Base64数据格式错误，无法解码", detail=str(decode_error))
+            
+            if len(image_bytes) == 0:
+                raise ApiError("Base64解码后数据为空", detail="解码的图片数据为空")
+            
+            self.logger.info(f"Base64解码成功，图片大小: {len(image_bytes) / 1024:.2f}KB")
             
             # 创建临时文件
             temp_fd, temp_path = tempfile.mkstemp(suffix=".png")
-            os.close(temp_fd)
+            try:
+                with open(temp_path, "wb") as f:
+                    f.write(image_bytes)
+                
+                self.logger.info(f"Base64图片已保存到临时文件: {temp_path}")
+                
+                # 上传到Google - 尝试不同的参数方式
+                loop = asyncio.get_event_loop()
+                
+                def upload_file():
+                    """同步上传文件的辅助函数"""
+                    # Google GenAI SDK 的 files.upload 使用 file 和 config 参数
+                    # mime_type 在 config 中设置
+                    from google.genai import types
+                    try:
+                        return self.client.files.upload(
+                            file=temp_path,
+                            config=types.UploadFileConfig(mime_type="image/png")
+                        )
+                    except Exception as e:
+                        error_msg = f"无法上传文件: {e}"
+                        self.logger.error(error_msg)
+                        raise TypeError(error_msg)
+                
+                google_file = await loop.run_in_executor(None, upload_file)
+                
+                self.logger.info(f"图片已上传到Google: {google_file.name}")
+                
+                return google_file
+                
+            finally:
+                # 确保清理临时文件
+                try:
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+                        self.logger.info(f"临时文件已清理: {temp_path}")
+                except Exception as cleanup_error:
+                    self.logger.warning(f"清理临时文件失败: {cleanup_error}")
             
-            with open(temp_path, "wb") as f:
-                f.write(image_bytes)
-            
-            self.logger.info(f"Base64图片已保存到临时文件: {temp_path}")
-            
-            # 上传到Google
-            loop = asyncio.get_event_loop()
-            google_file = await loop.run_in_executor(
-                None,
-                lambda: self.client.files.upload(path=temp_path)
-            )
-            
-            # 清理临时文件
-            os.remove(temp_path)
-            
-            self.logger.info(f"图片已上传到Google: {google_file.name}")
-            
-            return google_file
-            
+        except ApiError:
+            # 重新抛出ApiError
+            raise
         except Exception as e:
-            self.logger.error(f"Base64图片转换失败: {str(e)}")
-            raise ApiError("Base64图片转换失败", detail=str(e))
+            error_detail = str(e)
+            self.logger.error(f"Base64图片转换失败: {error_detail}", exc_info=True)
+            raise ApiError("Base64图片转换失败", detail=error_detail)
     
     @retry_decorator(max_attempts=3, wait_multiplier=1, wait_min=2, wait_max=10)
     async def generate_text_to_video(
@@ -558,16 +710,30 @@ class GoogleVeoService(LoggerMixin):
             
             # 下载视频
             generated_video = operation.response.generated_videos[0]
-            video_path = await self._download_video_from_google(generated_video.video)
+            video_obj = generated_video.video  # Video 对象，不是 File 对象
+            video_path = await self._download_video_from_google(video_obj)
             
             # 上传到OSS
-            video_url = await self._upload_video_to_oss(video_path, aspect_ratio)
+            video_url = await self._upload_video_to_oss(
+                video_path, 
+                aspect_ratio,
+                prefix="veo_t2v"
+            )
             
             # 清理
             self._cleanup_temp_files([video_path])
             
+            # 获取 Google File ID：Video 对象使用 uri，File 对象使用 name
+            google_file_id = None
+            if isinstance(video_obj, types.Video):
+                # Video 对象的 uri 格式是 "files/xxx"，这就是 File ID
+                google_file_id = video_obj.uri if video_obj.uri else None
+            else:
+                google_file_id = getattr(video_obj, 'name', None)
+            
             result = {
                 "video_url": video_url,
+                "google_file_id": google_file_id,  # 保存 Google File ID
                 "prompt": prompt,
                 "duration": duration,
                 "resolution": resolution,
@@ -635,8 +801,8 @@ class GoogleVeoService(LoggerMixin):
         )
         
         try:
-            # 步骤1: Base64转Google File
-            google_image = await self._base64_to_google_file(image_base64)
+            # 步骤1: Base64转Google Image（不是File）
+            google_image = await self._base64_to_google_image(image_base64)
             
             # 步骤2: 构建配置
             config = types.GenerateVideosConfig(
@@ -668,16 +834,30 @@ class GoogleVeoService(LoggerMixin):
             
             # 步骤5: 下载视频
             generated_video = operation.response.generated_videos[0]
-            video_path = await self._download_video_from_google(generated_video.video)
+            video_obj = generated_video.video  # Video 对象，不是 File 对象
+            video_path = await self._download_video_from_google(video_obj)
             
             # 步骤6: 上传到OSS
-            video_url = await self._upload_video_to_oss(video_path, aspect_ratio)
+            video_url = await self._upload_video_to_oss(
+                video_path, 
+                aspect_ratio,
+                prefix="veo_i2v_first"
+            )
             
             # 步骤7: 清理
             self._cleanup_temp_files([video_path])
             
+            # 获取 Google File ID：Video 对象使用 uri，File 对象使用 name
+            google_file_id = None
+            if isinstance(video_obj, types.Video):
+                # Video 对象的 uri 格式是 "files/xxx"，这就是 File ID
+                google_file_id = video_obj.uri if video_obj.uri else None
+            else:
+                google_file_id = getattr(video_obj, 'name', None)
+            
             result = {
                 "video_url": video_url,
+                "google_file_id": google_file_id,  # 保存 Google File ID
                 "prompt": prompt,
                 "duration": duration,
                 "resolution": resolution,
@@ -739,9 +919,9 @@ class GoogleVeoService(LoggerMixin):
         )
         
         try:
-            # 步骤1: 转换两张图片
-            google_first_image = await self._base64_to_google_file(first_image_base64)
-            google_last_image = await self._base64_to_google_file(last_image_base64)
+            # 步骤1: 转换两张图片为 Google Image 对象
+            google_first_image = await self._base64_to_google_image(first_image_base64)
+            google_last_image = await self._base64_to_google_image(last_image_base64)
             
             # 步骤2: 构建配置
             config = types.GenerateVideosConfig(
@@ -749,7 +929,7 @@ class GoogleVeoService(LoggerMixin):
                 resolution=resolution,
                 aspect_ratio=aspect_ratio,
                 duration_seconds=duration,
-                last_frame=google_last_image
+                last_frame=google_last_image  # last_frame 也应该是 Image 对象
             )
             
             if negative_prompt:
@@ -774,16 +954,30 @@ class GoogleVeoService(LoggerMixin):
             
             # 步骤5: 下载视频
             generated_video = operation.response.generated_videos[0]
-            video_path = await self._download_video_from_google(generated_video.video)
+            video_obj = generated_video.video  # Video 对象，不是 File 对象
+            video_path = await self._download_video_from_google(video_obj)
             
             # 步骤6: 上传到OSS
-            video_url = await self._upload_video_to_oss(video_path, aspect_ratio)
+            video_url = await self._upload_video_to_oss(
+                video_path, 
+                aspect_ratio,
+                prefix="veo_i2v_tail"
+            )
             
             # 步骤7: 清理
             self._cleanup_temp_files([video_path])
             
+            # 获取 Google File ID：Video 对象使用 uri，File 对象使用 name
+            google_file_id = None
+            if isinstance(video_obj, types.Video):
+                # Video 对象的 uri 格式是 "files/xxx"，这就是 File ID
+                google_file_id = video_obj.uri if video_obj.uri else None
+            else:
+                google_file_id = getattr(video_obj, 'name', None)
+            
             result = {
                 "video_url": video_url,
+                "google_file_id": google_file_id,  # 保存 Google File ID
                 "prompt": prompt,
                 "duration": duration,
                 "resolution": resolution,

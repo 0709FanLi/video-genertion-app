@@ -45,74 +45,8 @@ class DeleteResponse(BaseModel):
 
 # ==================== API Endpoints ====================
 
-@router.post(
-    "/upload",
-    response_model=UploadResponse,
-    summary="上传文件到OSS",
-    description="上传图片或视频文件到阿里云OSS存储"
-)
-async def upload_file(
-    file: UploadFile = File(..., description="要上传的文件"),
-    category: str = Form(default="uploads", description="文件类别: images/videos/references")
-) -> UploadResponse:
-    """上传文件API.
-    
-    Args:
-        file: 上传的文件
-        category: 文件类别
-    
-    Returns:
-        文件信息
-    
-    Raises:
-        HTTPException: 上传失败
-    """
-    try:
-        logger.info(
-            f"收到文件上传请求: filename={file.filename}, "
-            f"content_type={file.content_type}, category={category}"
-        )
-        
-        # 验证文件类型
-        if not file.content_type:
-            raise ApiError(
-                message="无效的文件类型",
-                detail="无法识别文件MIME类型"
-            )
-        
-        # 验证类别
-        valid_categories = ["images", "videos", "references", "uploads"]
-        if category not in valid_categories:
-            raise ApiError(
-                message="无效的文件类别",
-                detail=f"category必须是: {', '.join(valid_categories)}"
-            )
-        
-        # 上传文件
-        result = oss_service.upload_file(
-            file_data=file.file,
-            filename=file.filename,
-            category=category,
-            content_type=file.content_type
-        )
-        
-        logger.info(f"文件上传成功: {result['object_key']}")
-        
-        return UploadResponse(**result)
-        
-    except ApiError as e:
-        logger.error(f"上传文件失败: {e.message}")
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"message": e.message, "detail": e.detail}
-        )
-    except Exception as e:
-        logger.error(f"未知错误: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail={"message": "服务器内部错误", "detail": str(e)}
-        )
-
+# 注意：更具体的路由必须在更通用的路由之前定义
+# 否则FastAPI可能会先匹配到通用路由
 
 @router.post(
     "/upload/reference",

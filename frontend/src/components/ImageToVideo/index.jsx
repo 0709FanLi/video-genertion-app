@@ -12,7 +12,6 @@ import ImageUpload from './ImageUpload';
 import FrameSwitch from './FrameSwitch';
 import PromptInput from './PromptInput';
 import ModelSelector from './ModelSelector';
-import VideoParams from './VideoParams';
 import VideoResult from './VideoResult';
 
 import useVideoStore from '../../store/videoStore';
@@ -48,8 +47,13 @@ const ImageToVideoPage = () => {
       return false;
     }
     
-    // 文生视频模式不需要图片（火山引擎和Google Veo）
-    if (selectedModel === 'volc-t2v' || selectedModel === 'google-veo-t2v') {
+    // 判断是否为 Sora 2 模型
+    const isSoraV2 = selectedModel.startsWith('sora-v2');
+    
+    // 文生视频模式不需要图片（火山引擎、Google Veo、Sora 2）
+    if (selectedModel === 'volc-t2v' || selectedModel === 'google-veo-t2v' || isSoraV2) {
+      // Sora 2 支持文生视频，但如果上传了首帧图片，也可以进行图生视频
+      // 这里只验证提示词，不强制要求图片
       return true;
     }
     
@@ -80,11 +84,17 @@ const ImageToVideoPage = () => {
     setGenerating(true);
     
     try {
+      // 判断是否为 Sora 2 模型
+      const isSoraV2 = selectedModel.startsWith('sora-v2');
+      
+      // Sora 2 模型的时长由模型名控制
+      const soraDuration = isSoraV2 ? (selectedModel.includes('15s') ? 15 : 10) : null;
+      
       console.log('[生成视频] 开始...', {
         model: selectedModel,
-        duration,
-        resolution,
-        aspectRatio,
+        duration: isSoraV2 ? soraDuration : duration,
+        resolution: isSoraV2 ? 'N/A (Sora 2)' : resolution,
+        aspectRatio: isSoraV2 ? 'N/A (Sora 2)' : aspectRatio,
         hasFirstFrame: !!firstFrame,
         hasLastFrame: !!lastFrame,
         promptLength: prompt.length
@@ -95,9 +105,9 @@ const ImageToVideoPage = () => {
         first_frame_base64: firstFrame?.base64 || null, // 使用Base64
         last_frame_base64: lastFrame?.base64 || null, // 使用Base64
         prompt: prompt.trim(),
-        duration,
-        resolution,
-        aspect_ratio: aspectRatio // 添加长宽比参数
+        duration: isSoraV2 ? soraDuration : duration,  // Sora 2 自动设置时长
+        resolution: isSoraV2 ? undefined : resolution,  // Sora 2 不需要分辨率参数
+        aspect_ratio: isSoraV2 ? undefined : aspectRatio  // Sora 2 不需要长宽比参数
       };
       
       const result = await imageToVideoAPI.generateVideo(params);
@@ -158,22 +168,19 @@ const ImageToVideoPage = () => {
             {/* 左侧：配置区域 */}
             <Col xs={24} lg={12}>
               <Space direction="vertical" style={{ width: '100%' }} size="large">
-                {/* 图片上传 */}
-                <ImageUpload />
-                
-                {/* 首尾帧交换按钮 */}
-                <FrameSwitch />
-                
-                {/* 提示词输入 */}
-                <PromptInput />
-                
-                {/* 模型选择 */}
+                {/* 1. 模型选择（顶部） */}
                 <ModelSelector />
                 
-                {/* 视频参数 */}
-                <VideoParams />
+                {/* 2. 图片上传（中间） */}
+                <ImageUpload />
                 
-                {/* 生成按钮 */}
+                {/* 3. 首尾帧交换按钮（中间） */}
+                <FrameSwitch />
+                
+                {/* 4. 提示词输入（底部） */}
+                <PromptInput />
+                
+                {/* 5. 生成按钮（底部） */}
                 <div style={{ textAlign: 'center' }}>
                   <Button
                     type="primary"

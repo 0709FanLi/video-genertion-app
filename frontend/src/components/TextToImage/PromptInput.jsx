@@ -12,7 +12,7 @@ import {
 } from '@ant-design/icons';
 import useImageStore from '../../store/imageStore';
 import { textToImageAPI } from '../../services/api';
-import LibraryModal from '../LibraryModal';
+import UserLibraryModal from '../UserLibraryModal';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -75,13 +75,10 @@ const PromptInput = () => {
     : userPrompt;
   
   // 从资源库选择提示词
-  const handleSelectFromLibrary = (selection) => {
-    if (selection.type === 'prompt') {
-      const prompt = selection.data;
-      setUserPrompt(prompt.original_prompt || prompt.optimized_prompt);
-      if (prompt.optimized_prompt) {
-        setOptimizedPrompt(prompt.optimized_prompt);
-      }
+  const handleSelectFromLibrary = (prompt) => {
+    setUserPrompt(prompt.original_prompt || prompt.optimized_prompt);
+    if (prompt.optimized_prompt) {
+      setOptimizedPrompt(prompt.optimized_prompt);
     }
     setIsLibraryOpen(false);
   };
@@ -202,11 +199,10 @@ const PromptInput = () => {
     </Card>
     
     {/* 资源库弹窗 */}
-    <LibraryModal 
-      isOpen={isLibraryOpen}
+    <UserLibraryModal 
+      open={isLibraryOpen}
       onClose={() => setIsLibraryOpen(false)}
-      onSelect={handleSelectFromLibrary}
-      selectMode="prompt"
+      onSelectPrompt={handleSelectFromLibrary}
     />
     </>
   );

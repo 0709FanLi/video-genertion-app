@@ -25,6 +25,12 @@ class VideoModel(str, Enum):
     GOOGLE_VEO_T2V = "google-veo-t2v"  # 文生视频
     GOOGLE_VEO_I2V_FIRST = "google-veo-i2v-first"  # 单图首帧
     GOOGLE_VEO_I2V_FIRST_TAIL = "google-veo-i2v-first-tail"  # 首尾帧插值
+    
+    # Sora 2 模型
+    SORA_V2_PORTRAIT = "sora-v2-portrait"  # 竖屏 10s
+    SORA_V2_LANDSCAPE = "sora-v2-landscape"  # 横屏 10s
+    SORA_V2_PORTRAIT_15S = "sora-v2-portrait-15s"  # 竖屏 15s
+    SORA_V2_LANDSCAPE_15S = "sora-v2-landscape-15s"  # 横屏 15s
 
 
 class VideoResolution(str, Enum):
@@ -43,6 +49,7 @@ class VideoDuration(int, Enum):
     SIX_SECONDS = 6   # Google Veo支持
     EIGHT_SECONDS = 8 # Google Veo支持
     TEN_SECONDS = 10
+    FIFTEEN_SECONDS = 15  # Sora 2 支持
 
 
 class ImageToVideoRequest(BaseModel):
@@ -70,9 +77,9 @@ class ImageToVideoRequest(BaseModel):
         description="视频描述提示词"
     )
     
-    duration: VideoDuration = Field(
-        default=VideoDuration.FIVE_SECONDS,
-        description="视频时长（秒）"
+    duration: int = Field(
+        default=5,
+        description="视频时长（秒），支持4/5/6/8/10/15秒"
     )
     
     resolution: VideoResolution = Field(

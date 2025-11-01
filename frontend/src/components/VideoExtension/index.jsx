@@ -9,8 +9,8 @@ import { ExpandOutlined, ArrowLeftOutlined, PlayCircleOutlined } from '@ant-desi
 import { useNavigate } from 'react-router-dom';
 
 import VideoUpload from './VideoUpload';
+import ModelSelector from './ModelSelector';
 import ExtensionPromptInput from './ExtensionPromptInput';
-import ExtensionParams from './ExtensionParams';
 import VideoCompare from './VideoCompare';
 
 import useVideoExtensionStore from '../../store/videoExtensionStore';
@@ -27,6 +27,8 @@ const VideoExtensionPage = () => {
     extendedVideo,
     selectedModel,
     aspectRatio,
+    duration,
+    resolution,
     error,
     setExtending,
     setExtendedVideo,
@@ -81,6 +83,8 @@ const VideoExtensionPage = () => {
       console.log('[视频扩展] 开始...', {
         model: selectedModel,
         aspect_ratio: aspectRatio,
+        duration: duration,
+        resolution: resolution,
         video_url: originalVideo.url,
         promptLength: getCurrentPrompt().length
       });
@@ -89,7 +93,9 @@ const VideoExtensionPage = () => {
         video_url: originalVideo.url,
         prompt: getCurrentPrompt(),
         model: selectedModel,
-        aspect_ratio: aspectRatio
+        aspect_ratio: aspectRatio,
+        duration: duration,
+        resolution: resolution
       };
       
       const result = await videoExtensionAPI.extendVideo(params);
@@ -154,16 +160,16 @@ const VideoExtensionPage = () => {
         {/* 左侧：配置区域 */}
         <Col xs={24} lg={12}>
           <Space direction="vertical" style={{ width: '100%' }} size="large">
-            {/* 1. 视频上传 */}
+            {/* 1. 模型选择（顶部） */}
+            <ModelSelector />
+            
+            {/* 2. 视频上传（中间） */}
             <VideoUpload />
             
-            {/* 2. 扩展提示词输入 */}
+            {/* 3. 扩展提示词输入（底部） */}
             <ExtensionPromptInput />
             
-            {/* 3. 扩展参数设置 */}
-            <ExtensionParams />
-            
-            {/* 4. 生成按钮 */}
+            {/* 4. 生成按钮（底部） */}
             <Button
               type="primary"
               size="large"

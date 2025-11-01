@@ -42,12 +42,11 @@ class VolcJiMengService:
     def __init__(self) -> None:
         """初始化火山引擎服务."""
         self.access_key_id = settings.volc_access_key_id
+        # Secret Key 直接使用原始值（根据官方文档和调试记录，不需要 Base64 解码）
         self.secret_access_key = settings.volc_secret_access_key
         self.base_url = settings.volc_base_url
         self.timeout = settings.request_timeout
         
-        # 注意：根据官方示例，Secret Key直接使用，不需要Base64解码
-        # 如果您的Secret Key是Base64编码的，需要先解码
         logger.info(f"火山引擎服务初始化: access_key_id={self.access_key_id[:10]}...")
     
     def _generate_signature(

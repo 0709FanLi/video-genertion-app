@@ -28,6 +28,8 @@ const useVideoExtensionStore = create(
       
       // 参数设置
       aspectRatio: '16:9', // 视频长宽比
+      duration: 8, // 视频时长（秒）
+      resolution: '720p', // 视频分辨率
       
       // 生成结果
       extendedVideo: null, // 扩展后的视频 { url, duration, resolution, aspect_ratio }
@@ -101,6 +103,16 @@ const useVideoExtensionStore = create(
       setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
       
       /**
+       * 设置视频时长
+       */
+      setDuration: (duration) => set({ duration }),
+      
+      /**
+       * 设置视频分辨率
+       */
+      setResolution: (resolution) => set({ resolution }),
+      
+      /**
        * 设置扩展后的视频
        */
       setExtendedVideo: (video) => set({ extendedVideo: video }),
@@ -152,6 +164,9 @@ const useVideoExtensionStore = create(
         optimizedPrompt: '',
         useOptimizedPrompt: true,
         extendedVideo: null,
+        aspectRatio: '16:9',
+        duration: 8,
+        resolution: '720p',
         isOptimizing: false,
         isExtending: false,
         uploadProgress: 0,

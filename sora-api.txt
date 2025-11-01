@@ -1,0 +1,622 @@
+# Sora 2 API 视频生成接口调用文档
+
+## 一、概述
+
+### API 基础信息
+- **API 地址**: `https://api.apiyi.com/v1/chat/completions`
+- **请求方式**: POST
+- **认证方式**: Bearer Token（在 Header 中传递）
+- **Content-Type**: `application/json`
+- **流式输出**: 支持流式输出（stream: true）
+
+### 支持的模型列表
+
+| 模型名 | 描述 | 分辨率 | 时长 | 价格 |
+|--------|------|--------|------|------|
+| sora_video2 | Sora 2 视频（默认竖屏） | 704 × 1280 | 10s | $0.15/次 |
+| sora_video2-landscape | Sora 2 横屏视频 | 1280 × 704 | 10s | $0.15/次 |
+| sora_video2-15s | Sora 2 竖屏 15s视频 | 704 × 1280 | 15s | $0.15/次 |
+| sora_video2-landscape-15s | Sora 2 横屏 15s视频 | 1280 × 704 | 15s | $0.15/次 |
+
+**注意**: 
+- 模型根据模型名区分横竖屏和时长（而不是参数）
+- 价格默认为 $0.15/次（约 1.05 元）
+- 生成时间：10s 视频约 3 分钟左右，15s 视频约 5 分钟左右
+- 视频链接仅保留 1 天，请及时下载保存
+
+---
+
+## 二、Python 接口调用示例
+
+### 2.1 文生视频（Text-to-Video）
+
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Sora 2 文生视频 API - Python SDK
+根据文字描述生成视频，实时显示生成进度
+
+依赖安装: pip install requests
+
+使用方法:
+1. 设置 API_KEY 或直接在代码中填写
+2. 调用 generate_video() 函数
+3. 获取生成的视频URL链接并自行保存（视频仅保留1天）
+
+作者: API易
+文档: https://docs.apiyi.com
+"""
+
+import requests
+import json
+import re
+import os
+
+
+def generate_video(prompt, api_key=None, model="sora_video2"):
+    """
+    文生视频 - 根据文字描述生成视频
+    
+    参数:
+        prompt (str): 视频生成提示词
+        api_key (str): API易的密钥，如不提供则从环境变量 API_KEY 读取
+        model (str): 模型名称，可选值:
+            - sora_video2 (默认，竖屏 704×1280, 10s)
+            - sora_video2-landscape (横屏 1280×704, 10s)
+            - sora_video2-15s (竖屏 704×1280, 15s)
+            - sora_video2-landscape-15s (横屏 1280×704, 15s)
+    
+    返回:
+        str: 视频URL链接，失败返回 None
+    
+    示例:
+        >>> video_url = generate_video("A happy cat playing in the garden")
+        >>> print(video_url)
+    """
+    if api_key is None:
+        api_key = os.getenv("API_KEY")
+    
+    if not api_key:
+        raise ValueError("请设置 API_KEY 环境变量或传入 api_key 参数")
+    
+    url = "https://api.apiyi.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "model": model,
+        "stream": True,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": prompt
+                    }
+                ]
+            }
+        ]
+    }
+    
+    print(f"🎬 开始生成视频...")
+    print(f"📝 提示词: {prompt}")
+    print(f"🎯 模型: {model}\n")
+    
+    try:
+        response = requests.post(url, headers=headers, json=data, stream=True, timeout=600)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 请求失败: {e}")
+        return None
+    
+    video_url = None
+    error_message = None
+    
+    # 解析流式输出
+    try:
+        for line in response.iter_lines():
+            if line:
+                line = line.decode('utf-8')
+                if line.startswith('data: '):
+                    data_str = line[6:]  # 移除 'data: ' 前缀
+                    if data_str == '[DONE]':
+                        break
+                    
+                    try:
+                        data_json = json.loads(data_str)
+                        content = data_json.get('choices', [{}])[0].get('delta', {}).get('content', '')
+                        
+                        if content:
+                            # 打印进度信息
+                            if '进度' in content or '队列' in content or '成功' in content:
+                                print(content.strip())
+                            
+                            # 检查错误信息
+                            if 'error' in content.lower() or '失败' in content or '错误' in content:
+                                error_message = content.strip()
+                                print(f"⚠️ {error_message}")
+                            
+                            # 提取视频链接
+                            if '视频生成成功' in content:
+                                # 正则提取 markdown 链接中的 URL
+                                match = re.search(r'\[点击这里\]\((https?://[^\)]+)\)', content)
+                                if match:
+                                    video_url = match.group(1)
+                    except json.JSONDecodeError:
+                        continue
+    
+    except requests.exceptions.ChunkedEncodingError as e:
+        print(f"\n⚠️ 连接中断: {str(e)}")
+        print("💡 可能原因:")
+        print(" 1. 内容审核未通过（真实人脸、敏感内容等）")
+        print(" 2. 服务器端生成失败")
+        print(" 3. 网络连接不稳定")
+        print("\n建议:")
+        print(" - 修改提示词，避免真实人物、敏感内容描述")
+        print(" - 稍后重试")
+        return None
+    
+    except Exception as e:
+        print(f"\n❌ 处理流式输出时发生错误: {e}")
+        return None
+    
+    if video_url:
+        print(f"\n✅ 视频生成完成！")
+        print(f"🔗 视频链接: {video_url}")
+        print(f"⚠️ 重要提示: 视频链接仅保留 1 天，请立即下载保存到本地！")
+        return video_url
+    else:
+        print("\n❌ 未能获取视频链接")
+        return None
+
+
+def download_video(video_url, save_path="./sora_video.mp4"):
+    """
+    下载视频到本地
+    
+    参数:
+        video_url (str): 视频URL链接
+        save_path (str): 保存路径，默认为当前目录下的 sora_video.mp4
+    
+    返回:
+        bool: 下载成功返回 True，失败返回 False
+    """
+    try:
+        print(f"\n📥 开始下载视频...")
+        response = requests.get(video_url, stream=True, timeout=60)
+        response.raise_for_status()
+        
+        with open(save_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        
+        print(f"✅ 视频已保存到: {save_path}")
+        return True
+    except Exception as e:
+        print(f"❌ 下载失败: {e}")
+        return False
+
+
+# ==================== 使用示例 ====================
+if __name__ == "__main__":
+    # 设置你的 API Key
+    API_KEY = "sk-"  # 替换为你的 apiyi 按次计费的密钥
+    
+    print("=" * 60)
+    print("Sora 2 文生视频示例")
+    print("=" * 60)
+    
+    # 示例1: 基础使用 - 生成竖屏视频（10s）
+    prompt = "A happy cat playing with a ball in a sunny garden"
+    video_url = generate_video(prompt, api_key=API_KEY, model="sora_video2")
+    
+    # 自动下载视频到本地
+    if video_url:
+        download_video(video_url, save_path="./cat_playing.mp4")
+    
+    # 示例2: 生成横屏视频（10s）
+    # prompt2 = "A wide landscape view of mountains and lakes"
+    # video_url2 = generate_video(prompt2, api_key=API_KEY, model="sora_video2-landscape")
+    # if video_url2:
+    #     download_video(video_url2, save_path="./landscape.mp4")
+    
+    # 示例3: 生成竖屏视频（15s）
+    # prompt3 = "A futuristic city at sunset with flying cars"
+    # video_url3 = generate_video(prompt3, api_key=API_KEY, model="sora_video2-15s")
+    # if video_url3:
+    #     download_video(video_url3, save_path="./futuristic_city_15s.mp4")
+    
+    # 示例4: 生成横屏视频（15s）
+    # prompt4 = "A cinematic scene of ocean waves crashing on a beach"
+    # video_url4 = generate_video(prompt4, api_key=API_KEY, model="sora_video2-landscape-15s")
+    # if video_url4:
+    #     download_video(video_url4, save_path="./ocean_waves_15s.mp4")
+```
+
+---
+
+### 2.2 图生视频（Image-to-Video）
+
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Sora 2 图生视频 API - Python SDK
+根据图片和文字描述生成视频，实时显示生成进度
+
+依赖安装: pip install requests
+
+使用方法:
+1. 设置 API_KEY 或直接在代码中填写
+2. 调用 generate_video_from_image() 函数
+3. 获取生成的视频URL链接并自行保存（视频仅保留1天）
+4. 支持本地图片和网络图片URL
+
+作者: API易
+文档: https://docs.apiyi.com
+"""
+
+import requests
+import json
+import re
+import base64
+import os
+
+
+def generate_video_from_image(prompt, image_path_or_url, api_key=None, model="sora_video2"):
+    """
+    图生视频 - 根据图片和文字描述生成视频
+    
+    参数:
+        prompt (str): 视频生成提示词
+        image_path_or_url (str): 图片路径（本地文件）或URL链接
+        api_key (str): API易的密钥，如不提供则从环境变量 API_KEY 读取
+        model (str): 模型名称，可选值:
+            - sora_video2 (默认，竖屏 704×1280, 10s)
+            - sora_video2-landscape (横屏 1280×704, 10s)
+            - sora_video2-15s (竖屏 704×1280, 15s)
+            - sora_video2-landscape-15s (横屏 1280×704, 15s)
+    
+    返回:
+        str: 视频URL链接，失败返回 None
+    
+    示例:
+        >>> # 使用网络图片
+        >>> video_url = generate_video_from_image(
+        ...     "Make this scene come alive",
+        ...     "https://example.com/image.jpg",
+        ...     model="sora_video2-landscape"
+        ... )
+        >>> # 使用本地图片
+        >>> video_url = generate_video_from_image(
+        ...     "Animate this character",
+        ...     "./my_image.png"
+        ... )
+    """
+    if api_key is None:
+        api_key = os.getenv("API_KEY")
+    
+    if not api_key:
+        raise ValueError("请设置 API_KEY 环境变量或传入 api_key 参数")
+    
+    url = "https://api.apiyi.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    # 判断是本地文件还是URL
+    if image_path_or_url.startswith('http://') or image_path_or_url.startswith('https://'):
+        image_url = image_path_or_url
+        print(f"🖼️ 使用网络图片: {image_path_or_url}")
+    else:
+        # 本地文件，转为 base64
+        try:
+            with open(image_path_or_url, 'rb') as f:
+                image_data = base64.b64encode(f.read()).decode('utf-8')
+            
+            # 根据文件扩展名判断类型
+            ext = image_path_or_url.lower().split('.')[-1]
+            mime_type = f"image/{ext}" if ext in ['png', 'jpg', 'jpeg', 'gif', 'webp'] else "image/jpeg"
+            image_url = f"data:{mime_type};base64,{image_data}"
+            
+            print(f"🖼️ 使用本地图片: {image_path_or_url}")
+        except FileNotFoundError:
+            print(f"❌ 图片文件不存在: {image_path_or_url}")
+            return None
+        except Exception as e:
+            print(f"❌ 读取图片失败: {e}")
+            return None
+    
+    data = {
+        "model": model,
+        "stream": True,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": prompt
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": image_url
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+    
+    print(f"🎬 开始生成视频...")
+    print(f"📝 提示词: {prompt}")
+    print(f"🎯 模型: {model}\n")
+    
+    try:
+        response = requests.post(url, headers=headers, json=data, stream=True, timeout=600)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 请求失败: {e}")
+        return None
+    
+    video_url = None
+    error_message = None
+    
+    # 解析流式输出
+    try:
+        for line in response.iter_lines():
+            if line:
+                line = line.decode('utf-8')
+                if line.startswith('data: '):
+                    data_str = line[6:]
+                    if data_str == '[DONE]':
+                        break
+                    
+                    try:
+                        data_json = json.loads(data_str)
+                        content = data_json.get('choices', [{}])[0].get('delta', {}).get('content', '')
+                        
+                        if content:
+                            # 打印进度信息
+                            if '进度' in content or '队列' in content or '成功' in content:
+                                print(content.strip())
+                            
+                            # 检查错误信息
+                            if 'error' in content.lower() or '失败' in content or '错误' in content:
+                                error_message = content.strip()
+                                print(f"⚠️ {error_message}")
+                            
+                            # 提取视频链接
+                            if '视频生成成功' in content:
+                                match = re.search(r'\[点击这里\]\((https?://[^\)]+)\)', content)
+                                if match:
+                                    video_url = match.group(1)
+                    except json.JSONDecodeError:
+                        continue
+    
+    except requests.exceptions.ChunkedEncodingError as e:
+        print(f"\n⚠️ 连接中断: {str(e)}")
+        print("💡 可能原因:")
+        print(" 1. 内容审核未通过（真实人脸、敏感内容等）")
+        print(" 2. 服务器端生成失败")
+        print(" 3. 网络连接不稳定")
+        print("\n建议:")
+        print(" - 修改提示词，避免真实人物描述")
+        print(" - 检查图片是否包含敏感内容")
+        print(" - 稍后重试")
+        return None
+    
+    except Exception as e:
+        print(f"\n❌ 处理流式输出时发生错误: {e}")
+        return None
+    
+    if video_url:
+        print(f"\n✅ 视频生成完成！")
+        print(f"🔗 视频链接: {video_url}")
+        print(f"⚠️ 重要提示: 视频链接仅保留 1 天，请立即下载保存到本地！")
+        return video_url
+    else:
+        print("\n❌ 未能获取视频链接")
+        return None
+
+
+def download_video(video_url, save_path="./sora_video.mp4"):
+    """
+    下载视频到本地
+    
+    参数:
+        video_url (str): 视频URL链接
+        save_path (str): 保存路径，默认为当前目录下的 sora_video.mp4
+    
+    返回:
+        bool: 下载成功返回 True，失败返回 False
+    """
+    try:
+        print(f"\n📥 开始下载视频...")
+        response = requests.get(video_url, stream=True, timeout=60)
+        response.raise_for_status()
+        
+        with open(save_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        
+        print(f"✅ 视频已保存到: {save_path}")
+        return True
+    except Exception as e:
+        print(f"❌ 下载失败: {e}")
+        return False
+
+
+# ==================== 使用示例 ====================
+if __name__ == "__main__":
+    # 设置你的 API Key
+    API_KEY = "sk-"  # 替换为你的密钥
+    
+    print("=" * 60)
+    print("Sora 2 图生视频示例")
+    print("=" * 60)
+    
+    # 示例1: 使用本地图片 + 竖屏模型（10s）
+    local_image = "./cat.png"  # 替换为实际图片路径
+    prompt1 = "这只可爱的动物在游乐场欢快地玩耍"
+    video_url1 = generate_video_from_image(prompt1, local_image, api_key=API_KEY, model="sora_video2")
+    if video_url1:
+        download_video(video_url1, save_path="./cat_playground.mp4")
+    
+    # 示例2: 使用网络图片 + 横屏模型（10s）
+    # image_url = "https://example.com/your-image.jpg"  # 替换为实际图片URL
+    # prompt2 = "Make this scene come alive with animation"
+    # video_url2 = generate_video_from_image(prompt2, image_url, api_key=API_KEY, model="sora_video2-landscape")
+    # if video_url2:
+    #     download_video(video_url2, save_path="./animated_scene.mp4")
+    
+    # 示例3: 使用本地图片 + 竖屏模型（15s）
+    # prompt3 = "Bring this artwork to life"
+    # video_url3 = generate_video_from_image(
+    #     prompt3,
+    #     "./artwork.jpg",
+    #     api_key=API_KEY,
+    #     model="sora_video2-15s"
+    # )
+    # if video_url3:
+    #     download_video(video_url3, save_path="./artwork_15s.mp4")
+    
+    # 示例4: 使用本地图片 + 横屏模型（15s）
+    # prompt4 = "A cinematic scene of this landscape"
+    # video_url4 = generate_video_from_image(
+    #     prompt4,
+    #     "./landscape.jpg",
+    #     api_key=API_KEY,
+    #     model="sora_video2-landscape-15s"
+    # )
+    # if video_url4:
+    #     download_video(video_url4, save_path="./landscape_15s.mp4")
+```
+
+---
+
+## 三、请求格式说明
+
+### 3.1 文生视频请求格式
+
+```json
+{
+  "model": "sora_video2",
+  "stream": true,
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "你的提示词"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 3.2 图生视频请求格式
+
+```json
+{
+  "model": "sora_video2",
+  "stream": true,
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "你的提示词"
+        },
+        {
+          "type": "image_url",
+          "image_url": {
+            "url": "图片url或者base64"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+**注意**: Base64 的整个内容，直接放到 `url` 参数里，格式为: `data:image/{type};base64,{base64_data}`
+
+---
+
+## 四、响应格式
+
+### 4.1 流式输出格式
+
+响应采用 Server-Sent Events (SSE) 格式，每行以 `data: ` 开头:
+
+```
+data: {"choices":[{"delta":{"content":"视频生成中..."}}]}
+data: {"choices":[{"delta":{"content":"进度: 50%"}}]}
+data: {"choices":[{"delta":{"content":"视频生成成功！[点击这里](https://example.com/video.mp4)"}}]}
+data: [DONE]
+```
+
+### 4.2 视频链接提取
+
+视频链接通过正则表达式从响应内容中提取:
+```python
+match = re.search(r'\[点击这里\]\((https?://[^\)]+)\)', content)
+if match:
+    video_url = match.group(1)
+```
+
+---
+
+## 五、注意事项
+
+1. **API Key**: 需要替换为你的实际 API Key
+2. **超时设置**: 建议设置较长的超时时间（600秒），因为视频生成需要时间
+3. **错误处理**: 需要处理流式输出中的错误信息
+4. **视频存储**: 生成的视频链接仅保留 1 天，请及时下载保存
+5. **内容审核**: 避免真实人物、敏感内容描述，否则可能生成失败
+6. **图片格式**: 支持 URL 和 Base64 两种方式上传图片，Base64 时需包含完整的 data URI 格式
+7. **模型选择**: 根据需求选择合适的模型（横屏/竖屏，10s/15s）
+8. **真人出镜**: 在提示词中使用 `@sama` 或其他已认证人脸 Cameo 的用户 ID 可以让真人出镜
+
+---
+
+## 六、常见问题
+
+1. **如何控制视频的宽屏还是竖屏？**
+   - 通过选择不同的模型名来控制：
+     - `sora_video2` 或 `sora_video2-15s` → 竖屏
+     - `sora_video2-landscape` 或 `sora_video2-landscape-15s` → 横屏
+
+2. **如何控制视频时长？**
+   - 通过选择不同的模型名来控制：
+     - `sora_video2` 或 `sora_video2-landscape` → 10秒
+     - `sora_video2-15s` 或 `sora_video2-landscape-15s` → 15秒
+
+3. **如何去除水印？**
+   - 默认生成的视频是无水印的
+
+4. **为什么生成人物的视频失败？**
+   - 可能是内容审核未通过，建议避免真实人物描述，或使用 `@sama` 等已认证ID
+
+5. **支持高并发吗？**
+   - 建议并发数控制在 30 以内，大量并发可以联系服务商额外保障
+
+6. **视频存储时间？**
+   - 视频链接仅保留 1 天，请及时下载保存到本地
+
+---
+
+## 七、参考链接
+
+- API 文档: https://docs.apiyi.com
+- 文档来源: https://xinqikeji.feishu.cn/wiki/RuHDw0BICiRYdokDYy6cPAwunuf

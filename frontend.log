@@ -3,54 +3,7 @@
 > vite
 
 
-  VITE v7.1.12  ready in 85 ms
+  VITE v7.1.12  ready in 150 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
-10:33:26 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:33:32 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:33:36 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:33:39 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:33:50 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:33:59 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:37:19 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:37:27 AM [vite] (client) hmr update /src/components/UserLibraryModal.css
-10:37:33 AM [vite] (client) hmr update /src/components/UserLibraryModal.css
-10:37:36 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:39:47 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:39:54 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:40:06 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:40:50 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:40:51 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:40:53 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:40:59 AM [vite] (client) hmr update /src/components/UserLibraryModal.css
-10:41:00 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:41:01 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:41:02 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:41:45 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:41:45 AM [vite] (client) hmr update /src/components/UserLibraryModal.css
-10:41:45 AM [vite] (client) hmr update /src/components/VideoExtension/index.jsx, /src/components/TextToImage/index.jsx, /src/components/ImageToVideo/index.jsx, /src/components/ProtectedRoute.jsx, /src/components/common/Header.jsx, /src/pages/Register.jsx, /src/pages/Login.jsx, /src/components/UserMenu.jsx, /src/components/UserLibraryModal.jsx, /src/components/VideoExtension/ExtensionPromptInput.jsx, /src/components/TextToImage/PromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/ImageToVideo/ImageUpload.jsx, /src/components/ImageToVideo/PromptInput.jsx
-10:42:00 AM [vite] (client) hmr update /src/components/UserLibraryModal.css
-10:49:28 AM [vite] (client) hmr update /src/components/TextToImage/ResultGrid.jsx
-10:49:29 AM [vite] (client) hmr update /src/components/TextToImage/ResultGrid.jsx
-10:49:31 AM [vite] (client) hmr update /src/components/TextToImage/ResultGrid.jsx
-10:49:34 AM [vite] (client) hmr update /src/components/ImageToVideo/ImageUpload.jsx
-10:49:34 AM [vite] (client) hmr update /src/components/ImageToVideo/ImageUpload.jsx
-10:49:36 AM [vite] (client) hmr update /src/components/ImageToVideo/ImageUpload.jsx
-10:49:38 AM [vite] (client) hmr update /src/components/ImageToVideo/ImageUpload.jsx
-10:49:39 AM [vite] (client) hmr update /src/components/ImageToVideo/ImageUpload.jsx
-10:49:42 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:49:43 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:49:48 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:49:54 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:50:02 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:50:10 AM [vite] (client) hmr update /src/components/ImageToVideo/ImageUpload.jsx
-10:50:17 AM [vite] (client) hmr update /src/components/ImageToVideo/ImageUpload.jsx
-10:50:23 AM [vite] (client) hmr update /src/components/ImageToVideo/ImageUpload.jsx
-10:50:31 AM [vite] (client) hmr update /src/components/TextToImage/ResultGrid.jsx
-10:50:31 AM [vite] (client) hmr update /src/components/UserLibraryModal.jsx
-10:50:31 AM [vite] (client) hmr update /src/components/ImageToVideo/ImageUpload.jsx
-10:55:51 AM [vite] (client) hmr update /src/components/ImageToVideo/ImageUpload.jsx
-10:55:59 AM [vite] (client) hmr update /src/components/TextToImage/ResultGrid.jsx
-10:58:42 AM [vite] (client) hmr update /src/components/ImageToVideo/ImageUpload.jsx
-10:58:42 AM [vite] (client) hmr update /src/components/TextToImage/ResultGrid.jsx

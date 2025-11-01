@@ -167,3 +167,19 @@
   color: #1890ff;
 }
 
+/* 禁用状态的视频卡片 */
+.video-card-disabled {
+  opacity: 0.6;
+  filter: grayscale(0.5);
+  cursor: not-allowed !important;
+}
+
+.video-card-disabled:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.video-card-disabled .video-cover {
+  pointer-events: none;
+}
+

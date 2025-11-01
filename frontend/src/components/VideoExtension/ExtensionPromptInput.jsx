@@ -14,7 +14,7 @@ import {
 } from '@ant-design/icons';
 import useVideoExtensionStore from '../../store/videoExtensionStore';
 import { textToImageAPI } from '../../services/api';
-import LibraryModal from '../LibraryModal';
+import UserLibraryModal from '../UserLibraryModal';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -52,11 +52,11 @@ const ExtensionPromptInput = () => {
       setOptimizing(true);
       message.loading({ content: '正在优化提示词...', key: 'optimize' });
       
-      const result = await textToImageAPI.optimizePrompt({
-        prompt: extensionPrompt,
-        model: selectedPromptModel,
-        language: 'zh'  // 固定返回中文
-      });
+      const result = await textToImageAPI.optimizePrompt(
+        extensionPrompt,
+        selectedPromptModel,
+        'zh'  // 固定返回中文
+      );
       
       setOptimizedPrompt(result.optimized_prompt);
       message.success({ content: '提示词优化成功！', key: 'optimize' });
@@ -72,13 +72,10 @@ const ExtensionPromptInput = () => {
   /**
    * 从资源库选择提示词
    */
-  const handleSelectFromLibrary = (selection) => {
-    if (selection.type === 'prompt') {
-      const prompt = selection.data;
-      setExtensionPrompt(prompt.original_prompt || prompt.optimized_prompt);
-      if (prompt.optimized_prompt) {
-        setOptimizedPrompt(prompt.optimized_prompt);
-      }
+  const handleSelectFromLibrary = (prompt) => {
+    setExtensionPrompt(prompt.original_prompt || prompt.optimized_prompt);
+    if (prompt.optimized_prompt) {
+      setOptimizedPrompt(prompt.optimized_prompt);
     }
     setIsLibraryOpen(false);
   };
@@ -214,11 +211,10 @@ const ExtensionPromptInput = () => {
     </Card>
     
     {/* 资源库弹窗 */}
-    <LibraryModal 
-      isOpen={isLibraryOpen}
+    <UserLibraryModal 
+      open={isLibraryOpen}
       onClose={() => setIsLibraryOpen(false)}
-      onSelect={handleSelectFromLibrary}
-      selectMode="prompt"
+      onSelectPrompt={handleSelectFromLibrary}
     />
     </>
   );

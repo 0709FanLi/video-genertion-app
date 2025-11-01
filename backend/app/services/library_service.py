@@ -143,7 +143,8 @@ class LibraryService:
         last_frame_image_id: Optional[int] = None,
         source_video_id: Optional[int] = None,
         file_size: Optional[int] = None,
-        thumbnail_url: Optional[str] = None
+        thumbnail_url: Optional[str] = None,
+        google_file_id: Optional[str] = None
     ) -> UserVideo:
         """保存视频到用户视频库.
         
@@ -162,6 +163,7 @@ class LibraryService:
             source_video_id: 源视频ID（视频延长）
             file_size: 文件大小（字节）
             thumbnail_url: 缩略图URL
+            google_file_id: Google File ID（用于视频扩展）
             
         Returns:
             保存的视频记录
@@ -173,6 +175,7 @@ class LibraryService:
             prompt=prompt,
             model=model,
             is_google_veo=is_google_veo,
+            google_file_id=google_file_id,
             duration=duration,
             resolution=resolution,
             aspect_ratio=aspect_ratio,

@@ -416,9 +416,32 @@ class OSSService:
             # URL格式: https://bucket.oss-cn-shanghai.aliyuncs.com/path/to/file
             # 或直接是 object_key
             if url.startswith('http'):
-                # 从完整URL中提取object_key
-                # 例如: https://tool251027.oss-cn-shanghai.aliyuncs.com/videos/2025/10/30/file.mp4
-                # 匹配模式: https://bucket.oss-cn-region.aliyuncs.com/path
+                # 检查是否是我们自己的OSS bucket
+                # 只处理我们自己bucket的URL，其他OSS（如DashScope的结果OSS）直接用HTTP下载
+                is_our_oss = self.bucket_name in url and '.aliyuncs.com/' in url
+                
+                if not is_our_oss:
+                    # 不是我们的OSS，直接通过HTTP下载（包括DashScope的结果OSS）
+                    from urllib.parse import urlparse
+                    import httpx
+
+                    safe_url = url.strip()
+                    parsed = urlparse(safe_url)
+                    if not parsed.scheme or not parsed.netloc:
+                        raise ApiError("外部URL格式不正确", detail=safe_url)
+                    
+                    logger.info(f"从外部URL下载文件: {safe_url[:100]}...")
+                    try:
+                        response = httpx.get(safe_url, timeout=60.0)
+                        response.raise_for_status()
+                    except httpx.HTTPError as http_error:
+                        raise ApiError("下载文件失败", detail=str(http_error)) from http_error
+                    
+                    file_size_mb = len(response.content) / 1024 / 1024
+                    logger.info(f"外部文件下载成功，大小: {file_size_mb:.2f}MB")
+                    return response.content
+
+                # 是我们自己的OSS，从OSS链接中提取object_key
                 parts = url.split('.aliyuncs.com/')
                 if len(parts) > 1:
                     object_key = parts[1].split('?')[0]  # 移除查询参数

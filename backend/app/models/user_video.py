@@ -48,6 +48,9 @@ class UserVideo(Base):
     # 🆕 Google Veo 标记（用于视频延长筛选）
     is_google_veo = Column(Boolean, default=False, nullable=False, index=True)
     
+    # Google File ID（用于视频扩展，由 Veo 生成的视频才有）
+    google_file_id = Column(String(100), nullable=True, index=True)
+    
     duration = Column(Integer, nullable=True)  # 秒
     resolution = Column(String(20), nullable=True)  # 如：1080P
     aspect_ratio = Column(String(10), nullable=True)  # 如：16:9

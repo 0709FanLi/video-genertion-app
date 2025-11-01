@@ -27,6 +27,7 @@ const VideoParams = () => {
   const isVolcengine = selectedModel.startsWith('volc-');
   const isWanxiang = selectedModel.startsWith('wanx');
   const isGoogleVeo = selectedModel.startsWith('google-veo');
+  const isSoraV2 = selectedModel.startsWith('sora-v2');
   const isTextToVideo = selectedModel === 'volc-t2v';
   const isVolcImageToVideo = selectedModel === 'volc-i2v-first' || selectedModel === 'volc-i2v-first-tail';
   
@@ -56,8 +57,8 @@ const VideoParams = () => {
     ? { min: 4, max: 8, step: 2 }
     : { min: 5, max: 10, step: 5 };
   
-  // 时长是否可用
-  const isDurationEnabled = isVolcengine || isGoogleVeo;
+  // 时长是否可用（Sora 2 由模型名控制，不可手动选择）
+  const isDurationEnabled = (isVolcengine || isGoogleVeo) && !isSoraV2;
   const durationHint = !isDurationEnabled
     ? '📌 当前模型固定生成 5 秒时长视频'
     : isGoogleVeo
@@ -217,33 +218,59 @@ const VideoParams = () => {
         </div>
         
         {/* 分辨率设置 */}
-        <div>
-          <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <HighlightOutlined />
-            <span style={{ fontWeight: 500 }}>视频分辨率</span>
+        {!isSoraV2 && (
+          <div>
+            <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <HighlightOutlined />
+              <span style={{ fontWeight: 500 }}>视频分辨率</span>
+            </div>
+            <Select
+              value={resolution}
+              onChange={setResolution}
+              style={{ width: '100%' }}
+              size="large"
+              disabled={!resolutionConfig.enabled}
+            >
+              {resolutionConfig.options.map((opt) => (
+                <Select.Option value={opt.value} key={opt.value}>
+                  <Space>
+                    <span>{opt.label}</span>
+                    <span style={{ color: '#999', fontSize: '12px' }}>
+                      {opt.desc}
+                    </span>
+                  </Space>
+                </Select.Option>
+              ))}
+            </Select>
+            <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+              {resolutionConfig.hint}
+            </div>
           </div>
-          <Select
-            value={resolution}
-            onChange={setResolution}
-            style={{ width: '100%' }}
-            size="large"
-            disabled={!resolutionConfig.enabled}
-          >
-            {resolutionConfig.options.map((opt) => (
-              <Select.Option value={opt.value} key={opt.value}>
-                <Space>
-                  <span>{opt.label}</span>
-                  <span style={{ color: '#999', fontSize: '12px' }}>
-                    {opt.desc}
-                  </span>
-                </Space>
-              </Select.Option>
-            ))}
-          </Select>
-          <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
-            {resolutionConfig.hint}
+        )}
+        
+        {/* Sora 2 模型特殊说明 */}
+        {isSoraV2 && (
+          <div style={{ 
+            padding: '12px', 
+            backgroundColor: '#f0f2f5', 
+            borderRadius: '4px',
+            fontSize: '13px',
+            color: '#666'
+          }}>
+            <div style={{ marginBottom: '8px' }}>
+              <strong>ℹ️ Sora 2 模型参数说明：</strong>
+            </div>
+            <div>
+              • 时长：由模型名自动控制（{selectedModel.includes('15s') ? '15秒' : '10秒'}）
+            </div>
+            <div>
+              • 分辨率：{selectedModel.includes('landscape') ? '横屏 1280×704' : '竖屏 704×1280'}（固定）
+            </div>
+            <div style={{ marginTop: '8px', color: '#ff4d4f' }}>
+              ⚠️ 注意：视频链接仅保留1天，生成后请及时下载保存
+            </div>
           </div>
-        </div>
+        )}
       </Space>
     </Card>
   );

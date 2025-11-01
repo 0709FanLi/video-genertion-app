@@ -12,6 +12,7 @@ import httpx
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.exceptions.custom_exceptions import ApiError
+from app.services.oss_service import oss_service
 from app.utils.retry_decorator import retry_decorator
 
 logger = get_logger(__name__)
@@ -268,10 +269,80 @@ class WanxI2IService:
                 detail="结果中没有图片URL"
             )
         
-        image_urls = [item.get("url") for item in results if item.get("url")]
+        temp_image_urls = [item.get("url") for item in results if item.get("url")]
         
-        logger.info(f"成功生成 {len(image_urls)} 张图片")
-        return image_urls
+        if not temp_image_urls:
+            logger.error(f"任务{task_id}未返回有效图片URL")
+            raise ApiError(
+                message="未返回有效图片URL",
+                detail="结果中的URL为空"
+            )
+        
+        logger.info(f"成功生成 {len(temp_image_urls)} 张图片，开始转存到OSS...")
+        
+        # 转存所有图片到OSS（与通义千问保持一致）
+        permanent_image_urls = []
+        for idx, temp_url in enumerate(temp_image_urls):
+            try:
+                permanent_url = await self._save_image_to_oss(temp_url, size, idx + 1)
+                permanent_image_urls.append(permanent_url)
+            except Exception as e:
+                logger.warning(f"转存第{idx + 1}张图片失败: {str(e)}，使用临时URL作为降级方案")
+                # 转存失败时，使用临时URL作为降级方案
+                permanent_image_urls.append(temp_url)
+        
+        logger.info(f"图片转存完成: {len(permanent_image_urls)} 张图片")
+        return permanent_image_urls
+    
+    async def _save_image_to_oss(
+        self,
+        temp_image_url: str,
+        size: str,
+        index: int = 1
+    ) -> str:
+        """将临时图片URL转存到OSS并返回永久URL.
+        
+        Args:
+            temp_image_url: 通义万相返回的临时图片URL
+            size: 图片尺寸（用于文件命名）
+            index: 图片序号（用于文件命名）
+            
+        Returns:
+            OSS永久图片URL
+            
+        Raises:
+            ApiError: 转存失败
+        """
+        try:
+            logger.info(f"开始转存图片到OSS: size={size}, index={index}")
+            
+            # 生成文件名（带时间戳和尺寸标识）
+            from datetime import datetime
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            size_tag = size.replace("*", "x")  # 1024*1024 -> 1024x1024
+            filename = f"wanx_i2i_{size_tag}_{timestamp}_{index}.png"
+            
+            # 从临时URL下载并上传到OSS
+            oss_result = await oss_service.upload_from_url(
+                url=temp_image_url,
+                filename=filename,
+                category="images"
+            )
+            
+            permanent_url = oss_result["url"]
+            logger.info(
+                f"图片转存成功: {filename}, "
+                f"大小: {oss_result['size'] / 1024:.2f}KB, "
+                f"OSS URL: {permanent_url[:100]}..."
+            )
+            
+            return permanent_url
+            
+        except Exception as e:
+            logger.error(f"图片转存OSS失败: {str(e)}")
+            # 转存失败时，返回原临时URL作为降级方案
+            logger.warning("使用临时URL作为降级方案（临时链接可能有过期时间）")
+            return temp_image_url
     
     async def health_check(self) -> bool:
         """健康检查.

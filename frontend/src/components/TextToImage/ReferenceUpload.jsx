@@ -2,16 +2,18 @@
  * 参考图上传组件
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, Upload, Space, Image, Button, Tag, Tooltip, message } from 'antd';
 import { 
   PlusOutlined, 
   DeleteOutlined,
   InfoCircleOutlined,
-  WarningOutlined 
+  WarningOutlined,
+  FolderOutlined
 } from '@ant-design/icons';
 import useImageStore from '../../store/imageStore';
 import { fileUploadAPI } from '../../services/api';
+import UserLibraryModal from '../UserLibraryModal';
 
 const ReferenceUpload = () => {
   const {
@@ -23,6 +25,9 @@ const ReferenceUpload = () => {
     removeReferenceImage,
     clearReferenceImages
   } = useImageStore();
+  
+  // 资源库弹窗状态
+  const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
   
   // 获取当前模型信息
   const currentModel = textToImageModels[selectedImageModel] || {};
@@ -126,6 +131,33 @@ const ReferenceUpload = () => {
     message.info('已清空所有参考图');
   };
   
+  // 从资源库选择图片
+  const handleSelectFromLibrary = (image) => {
+    // 检查是否已达到最大数量
+    if (referenceImages.length >= maxReferenceImages) {
+      message.warning(`最多只能添加 ${maxReferenceImages} 张参考图！`);
+      return;
+    }
+    
+    // 检查是否已存在（避免重复添加）
+    const exists = referenceImages.some(img => img.url === image.image_url);
+    if (exists) {
+      message.warning('该图片已在参考图列表中');
+      return;
+    }
+    
+    // 添加到参考图列表
+    addReferenceImage({
+      url: image.image_url,
+      name: `资源库-${image.id}`,
+      fromLibrary: true, // 标记来自资源库
+      libraryImageId: image.id
+    });
+    
+    message.success('已从资源库添加参考图');
+    setIsLibraryModalOpen(false);
+  };
+  
   return (
     <Card 
       title={
@@ -164,6 +196,19 @@ const ReferenceUpload = () => {
         }}>
           <InfoCircleOutlined style={{ marginRight: 8, color: '#1890ff' }} />
           最多上传 {maxReferenceImages} 张参考图，AI会参考其风格、构图和色彩生成新图片
+        </div>
+        
+        {/* 操作按钮栏 */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <Button
+            type="default"
+            icon={<FolderOutlined />}
+            onClick={() => setIsLibraryModalOpen(true)}
+            disabled={isGenerating || referenceImages.length >= maxReferenceImages}
+            size="small"
+          >
+            从资源库选择
+          </Button>
         </div>
         
         {/* 上传区域 */}
@@ -299,6 +344,13 @@ const ReferenceUpload = () => {
           </div>
         )}
       </Space>
+      
+      {/* 资源库弹窗 */}
+      <UserLibraryModal
+        open={isLibraryModalOpen}
+        onClose={() => setIsLibraryModalOpen(false)}
+        onSelectImage={handleSelectFromLibrary}
+      />
     </Card>
   );
 };

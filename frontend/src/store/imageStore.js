@@ -26,6 +26,10 @@ const useImageStore = create(
       // 参考图
       referenceImages: [], // 参考图列表 { id, url, file }
       
+      // 生成参数
+      numImages: 1, // 生成图片数量（1-4）
+      imageSize: '1024x1024', // 图片尺寸
+      
       // 生成结果
       generatedImages: [], // 生成的图片列表 { id, url, prompt, model, timestamp }
       selectedImageId: null, // 当前选择的图片ID（用于图生视频）
@@ -96,6 +100,16 @@ const useImageStore = create(
        * 清空参考图
        */
       clearReferenceImages: () => set({ referenceImages: [] }),
+      
+      /**
+       * 设置生成图片数量
+       */
+      setNumImages: (numImages) => set({ numImages }),
+      
+      /**
+       * 设置图片尺寸
+       */
+      setImageSize: (imageSize) => set({ imageSize }),
       
       /**
        * 添加生成的图片

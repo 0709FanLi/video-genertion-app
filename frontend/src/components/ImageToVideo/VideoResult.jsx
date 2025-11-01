@@ -9,12 +9,17 @@ import {
   DownloadOutlined,
   ReloadOutlined,
   PlayCircleOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  ExpandOutlined
 } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import useVideoStore from '../../store/videoStore';
+import useVideoExtensionStore from '../../store/videoExtensionStore';
 
 const VideoResult = () => {
   const { videoResult, clearResult } = useVideoStore();
+  const navigate = useNavigate();
+  const { setOriginalVideo } = useVideoExtensionStore();
   
   /**
    * 下载视频
@@ -35,6 +40,35 @@ const VideoResult = () => {
     document.body.removeChild(link);
     
     message.success('视频下载已开始');
+  };
+  
+  /**
+   * 视频延长
+   * 跳转到视频扩展页面，并将当前视频作为原始视频
+   */
+  const handleExtendVideo = () => {
+    if (!videoResult || !videoResult.video_url) {
+      message.error('视频URL无效');
+      return;
+    }
+    
+    // 判断是否为 Google Veo 视频（Google Veo 视频延长仅支持延长由其生成的视频）
+    const isGoogleVeo = videoResult.model && 
+      videoResult.model.toLowerCase().includes('google-veo');
+    
+    // 设置视频信息到视频扩展 store
+    setOriginalVideo({
+      url: videoResult.video_url,
+      name: videoResult.orig_prompt || videoResult.actual_prompt || '已生成的视频',
+      model: videoResult.model || '',
+      duration: videoResult.duration || 0,
+      resolution: videoResult.resolution || '',
+      is_google_veo: isGoogleVeo
+    });
+    
+    // 跳转到视频扩展页面
+    navigate('/video-extension');
+    message.success('已跳转到视频延长页面');
   };
   
   /**
@@ -80,6 +114,12 @@ const VideoResult = () => {
             <Space>
               <Button
                 type="primary"
+                icon={<ExpandOutlined />}
+                onClick={handleExtendVideo}
+              >
+                视频延长
+              </Button>
+              <Button
                 icon={<DownloadOutlined />}
                 onClick={handleDownload}
               >

@@ -29,7 +29,9 @@ const ImageUpload = () => {
   const [selectingFrame, setSelectingFrame] = useState(null); // 'first' or 'last'
   
   // 是否需要图片（文生视频模型不需要）
-  const isTextToVideo = selectedModel === 'volc-t2v';
+  const isTextToVideo = selectedModel === 'volc-t2v' || 
+                        selectedModel === 'google-veo-t2v' || 
+                        selectedModel.startsWith('sora-v2');
   
   // 是否需要尾帧（根据模型判断）
   const needLastFrame = selectedModel.includes('tail') || selectedModel.includes('wanx');

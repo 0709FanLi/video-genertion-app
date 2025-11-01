@@ -78,6 +78,7 @@ async def extend_video(
     logger.info(
         f"收到视频扩展请求: model={request.model}, "
         f"aspect_ratio={request.aspect_ratio}, "
+        f"duration={request.duration}, resolution={request.resolution}, "
         f"video_url={request.video_url[:100]}"
     )
     
@@ -91,11 +92,32 @@ async def extend_video(
         
         # 目前仅支持Google Veo 3.1
         if request.model == "google-veo-3.1":
+            # 查询原始视频记录，获取 google_file_id
+            source_video = db.query(UserVideo).filter(
+                UserVideo.user_id == current_user.id,
+                UserVideo.video_url == request.video_url
+            ).first()
+            
+            if not source_video:
+                raise ApiError(
+                    message="视频不存在",
+                    detail="无法找到原始视频记录"
+                )
+            
+            if not source_video.google_file_id:
+                raise ApiError(
+                    message="视频无法扩展",
+                    detail="该视频不是由 Veo 生成的，无法进行扩展"
+                )
+            
             result = await google_veo_service.extend_video(
                 video_url=request.video_url,
                 prompt=request.prompt,
                 aspect_ratio=request.aspect_ratio,
-                negative_prompt=request.negative_prompt
+                negative_prompt=request.negative_prompt,
+                duration=request.duration or 8,
+                resolution=request.resolution or "720p",
+                google_file_id=source_video.google_file_id  # 使用保存的 Google File ID
             )
         else:
             raise ApiError(
@@ -108,12 +130,6 @@ async def extend_video(
         # 保存扩展后的视频到用户视频库
         library_service = LibraryService(db)
         
-        # 查询原始视频记录（获取source_video_id）
-        source_video = db.query(UserVideo).filter(
-            UserVideo.user_id == current_user.id,
-            UserVideo.video_url == request.video_url
-        ).first()
-        
         # 判断是否为Google Veo模型
         is_google_veo = 'google-veo' in request.model.lower()
         
@@ -123,22 +139,23 @@ async def extend_video(
             model=request.model,
             prompt=request.prompt,
             is_google_veo=is_google_veo,
-            duration=8,  # Google Veo固定8秒
-            resolution="720p",  # Google Veo固定720p
+            duration=result.get('duration', request.duration or 8),
+            resolution=result.get('resolution', request.resolution or "720p"),
             aspect_ratio=request.aspect_ratio,
             generation_type="video_extension",
-            source_video_id=source_video.id if source_video else None
+            source_video_id=source_video.id if source_video else None,
+            google_file_id=result.get('google_file_id')  # 保存扩展后的 Google File ID
         )
         
         return VideoExtensionResponse(**result)
         
     except ApiError as e:
-        logger.error(f"视频扩展失败: {e.message} - {e.details}")
+        logger.error(f"视频扩展失败: {e.message} - {e.detail}")
         raise HTTPException(
             status_code=500,
             detail={
                 "message": e.message,
-                "detail": e.details
+                "detail": e.detail
             }
         )
     except Exception as e:

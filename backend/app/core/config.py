@@ -75,6 +75,13 @@ class Settings(BaseSettings):
     # Google Gemini/Veo配置
     gemini_api_key: str = ""
     
+    # Sora 2 API配置
+    sora_api_key: str = os.getenv(
+        "SORA_API_KEY",
+        "sk-xwr8Ej6nftgmu5vCBe46B27b06054866Bc39325441A232Fc"
+    )
+    sora_base_url: str = "https://api.apiyi.com/v1"
+    
     # 请求配置
     request_timeout: int = 300
     task_poll_interval: int = 5
@@ -106,7 +113,7 @@ class Settings(BaseSettings):
     oss_bucket_name: str = ""
     oss_public_read: bool = True  # Bucket为公共读
     oss_url_expire_seconds: int = 3600  # 签名URL有效期（秒）
-    oss_max_file_size: int = 10 * 1024 * 1024  # 最大文件大小 10MB
+    oss_max_file_size: int = 50 * 1024 * 1024  # 最大文件大小 50MB
     
     # 文生图模型配置
     text_to_image_models: dict = {

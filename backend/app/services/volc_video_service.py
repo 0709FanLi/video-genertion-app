@@ -11,7 +11,7 @@ import hmac
 import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 import httpx
 
@@ -27,8 +27,8 @@ class VolcVideoService(LoggerMixin):
     
     支持三种模式：
     1. 文生视频：jimeng_t2v_v30_1080p
-    2. 图生视频（首帧）：jimeng_i2v_first_v30_1080
-    3. 图生视频（首尾帧）：jimeng_i2v_first_tail_v30_1080
+    2. 图生视频（首帧）：jimeng_i2v_first_v30
+    3. 图生视频（首尾帧）：jimeng_i2v_first_tail_v30
     4. 图文生视频（Pro）：jimeng_ti2v_v30_pro
     
     Attributes:
@@ -45,6 +45,7 @@ class VolcVideoService(LoggerMixin):
     def __init__(self) -> None:
         """初始化火山引擎视频服务."""
         self.access_key_id = settings.volc_access_key_id
+        # Secret Key 直接使用原始值（根据官方文档和调试记录，不需要 Base64 解码）
         self.secret_access_key = settings.volc_secret_access_key
         self.base_url = settings.volc_base_url
         self.timeout = settings.request_timeout
@@ -184,14 +185,18 @@ class VolcVideoService(LoggerMixin):
             method, uri, query_params, headers, body, timestamp
         )
         
-        # 构建Authorization
+        # 构建Authorization（格式必须与 volc_jimeng_service 一致）
         credential_scope = f"{timestamp[:8]}/cn-north-1/{self.SERVICE_NAME}/request"
         signed_headers = "content-type;host;x-content-sha256;x-date"
         
-        headers["Authorization"] = (
-            f"HMAC-SHA256 Credential={self.access_key_id}/{credential_scope}, "
-            f"SignedHeaders={signed_headers}, Signature={signature}"
+        authorization = (
+            f"HMAC-SHA256 "
+            f"Credential={self.access_key_id}/{credential_scope}, "
+            f"SignedHeaders={signed_headers}, "
+            f"Signature={signature}"
         )
+        
+        headers["Authorization"] = authorization
         
         return headers
     
@@ -207,8 +212,8 @@ class VolcVideoService(LoggerMixin):
         """提交视频生成任务.
         
         Args:
-            req_key: 服务标识（jimeng_t2v_v30_1080p / jimeng_i2v_first_v30_1080 / 
-                     jimeng_i2v_first_tail_v30_1080 / jimeng_ti2v_v30_pro）
+            req_key: 服务标识（jimeng_t2v_v30_1080p / jimeng_i2v_first_v30 / 
+                     jimeng_i2v_first_tail_v30 / jimeng_ti2v_v30_pro）
             prompt: 提示词（文生视频必需，图生视频可选）
             image_urls: 图片URL列表（图生视频必需）
             frames: 总帧数（121=5秒, 241=10秒）
@@ -249,25 +254,49 @@ class VolcVideoService(LoggerMixin):
         
         self.logger.info(
             f"提交视频生成任务: req_key={req_key}, frames={frames}, "
-            f"has_images={bool(image_urls)}"
+            f"has_images={bool(image_urls)}, prompt长度={len(prompt) if prompt else 0}"
         )
+        
+        # 记录请求体内容（用于调试）
+        self.logger.debug(f"请求体内容: {body}")
         
         # 构建请求头
         headers = self._build_auth_headers("POST", uri, query_params, body)
         
-        # 构建完整URL
-        query_string = "&".join([f"{k}={v}" for k, v in query_params.items()])
-        url = f"{self.base_url}{uri}?{query_string}"
-        
+        # 使用与volc_jimeng_service完全相同的方式发送请求
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
-                response = await client.post(url, headers=headers, content=body)
+                url = f"{self.base_url}{uri}"
+                
+                # 记录请求详情（用于调试）
+                self.logger.info(f"请求URL: {url}")
+                self.logger.info(f"查询参数: {query_params}")
+                self.logger.info(f"请求头Authorization: {headers.get('Authorization', '')[:100]}...")
+                self.logger.info(f"请求头X-Date: {headers.get('X-Date', '')}")
+                self.logger.info(f"请求头X-Content-Sha256: {headers.get('X-Content-Sha256', '')}")
+                self.logger.info(f"请求体: {body}")
+                
+                response = await client.post(
+                    url,
+                    params=query_params,
+                    headers=headers,
+                    content=body
+                )
+                
+                # 记录响应状态
+                self.logger.debug(f"响应状态码: {response.status_code}")
+                self.logger.debug(f"响应头: {dict(response.headers)}")
+                
                 response.raise_for_status()
                 data = response.json()
                 
                 if data.get("code") != 10000:
                     error_msg = data.get("message", "未知错误")
-                    self.logger.error(f"提交任务失败: {error_msg}, 详情: {data}")
+                    error_code = data.get("code")
+                    self.logger.error(
+                        f"提交任务失败: code={error_code}, message={error_msg}, "
+                        f"详情: {data}"
+                    )
                     raise ApiError(
                         f"提交任务失败: {error_msg}",
                         details=str(data)
@@ -279,7 +308,26 @@ class VolcVideoService(LoggerMixin):
                 
             except httpx.HTTPStatusError as e:
                 error_detail = e.response.text
-                self.logger.error(f"火山即梦请求失败: {error_detail}")
+                error_status = e.response.status_code
+                self.logger.error(
+                    f"火山即梦请求失败: status={error_status}, "
+                    f"detail={error_detail}"
+                )
+                # 尝试解析错误响应
+                try:
+                    error_json = e.response.json()
+                    error_code = error_json.get("code") or error_json.get("ResponseMetadata", {}).get("Error", {}).get("Code")
+                    error_message = error_json.get("message") or error_json.get("ResponseMetadata", {}).get("Error", {}).get("Message")
+                    if error_code == 50400 and "Access Denied" in str(error_message):
+                        raise ApiError(
+                            "火山即梦认证失败: Access Denied。请检查：\n"
+                            "1. API Key 和 Secret Key 是否正确\n"
+                            "2. 账号是否有视频生成权限\n"
+                            "3. API Key 是否已启用",
+                            detail=error_detail
+                        )
+                except:
+                    pass
                 raise ApiError("火山即梦请求失败", detail=error_detail)
             except Exception as e:
                 self.logger.error(f"提交任务异常: {str(e)}")
@@ -313,12 +361,16 @@ class VolcVideoService(LoggerMixin):
         
         headers = self._build_auth_headers("POST", uri, query_params, body)
         
-        query_string = "&".join([f"{k}={v}" for k, v in query_params.items()])
-        url = f"{self.base_url}{uri}?{query_string}"
-        
+        # 使用与volc_jimeng_service完全相同的方式发送请求
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
-                response = await client.post(url, headers=headers, content=body)
+                url = f"{self.base_url}{uri}"
+                response = await client.post(
+                    url,
+                    params=query_params,
+                    headers=headers,
+                    content=body
+                )
                 response.raise_for_status()
                 data = response.json()
                 
@@ -496,13 +548,13 @@ class VolcVideoService(LoggerMixin):
         )
         
         task_id = await self._submit_task(
-            req_key="jimeng_i2v_first_v30_1080",
+            req_key="jimeng_i2v_first_v30",
             prompt=prompt,
             image_urls=[image_url],
             frames=frames
         )
         
-        result = await self._poll_task_result("jimeng_i2v_first_v30_1080", task_id)
+        result = await self._poll_task_result("jimeng_i2v_first_v30", task_id)
         
         # 转存视频到OSS
         temp_video_url = result.get("video_url")
@@ -541,14 +593,14 @@ class VolcVideoService(LoggerMixin):
         )
         
         task_id = await self._submit_task(
-            req_key="jimeng_i2v_first_tail_v30_1080",
+            req_key="jimeng_i2v_first_tail_v30",
             prompt=prompt,
             image_urls=[first_image_url, last_image_url],
             frames=frames
         )
         
         result = await self._poll_task_result(
-            "jimeng_i2v_first_tail_v30_1080", 
+            "jimeng_i2v_first_tail_v30", 
             task_id
         )
         

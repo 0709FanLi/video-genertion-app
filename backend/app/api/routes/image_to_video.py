@@ -5,7 +5,7 @@
 
 import base64
 import io
-from typing import Optional
+from typing import Optional, Dict, Any, Tuple
 
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
@@ -27,6 +27,7 @@ from app.services.qwen_vl_service import qwen_vl_service
 from app.services.volc_video_service import volc_video_service
 from app.services.wanx_kf2v_service import wanx_kf2v_service
 from app.services.google_veo_service import google_veo_service
+from app.services.sora_service import sora_service
 from app.services.oss_service import oss_service
 
 router = APIRouter()
@@ -167,7 +168,13 @@ async def generate_video(
         
         elif request.model in [VideoModel.GOOGLE_VEO_T2V, VideoModel.GOOGLE_VEO_I2V_FIRST, VideoModel.GOOGLE_VEO_I2V_FIRST_TAIL]:
             # Google Veo 3.1
-            result = await _generate_google_veo_video(request)
+            result, google_file_id = await _generate_google_veo_video(request)
+        
+        elif request.model in [VideoModel.SORA_V2_PORTRAIT, VideoModel.SORA_V2_LANDSCAPE, 
+                                VideoModel.SORA_V2_PORTRAIT_15S, VideoModel.SORA_V2_LANDSCAPE_15S]:
+            # Sora 2 API
+            result = await _generate_sora_video(request, first_frame_url)
+            google_file_id = None
         
         else:
             raise ValueError(f"不支持的模型: {request.model}")
@@ -188,6 +195,10 @@ async def generate_video(
         else:
             generation_type = "text_to_video"
         
+        # 对于非 Google Veo 模型，google_file_id 为 None
+        if not is_google_veo:
+            google_file_id = None
+        
         library_service.save_video(
             user_id=current_user.id,
             video_url=result.video_url,
@@ -197,7 +208,8 @@ async def generate_video(
             duration=result.duration,
             resolution=request.resolution.value if request.resolution else None,
             aspect_ratio=request.aspect_ratio,
-            generation_type=generation_type
+            generation_type=generation_type,
+            google_file_id=google_file_id
         )
         
         return result
@@ -242,7 +254,7 @@ async def _generate_volc_video(
         # 文生视频模式（纯文本，无需图片）
         result = await volc_video_service.generate_text_to_video(
             prompt=request.prompt,
-            duration=request.duration.value,
+            duration=request.duration,
             aspect_ratio=request.aspect_ratio or "16:9"
         )
     
@@ -336,24 +348,26 @@ async def _generate_wanx_video(
 
 async def _generate_google_veo_video(
     request: ImageToVideoRequest
-) -> ImageToVideoResponse:
+) -> Tuple[ImageToVideoResponse, Optional[str]]:
     """使用Google Veo 3.1生成视频.
     
     Args:
         request: 视频生成请求
         
     Returns:
-        视频生成结果
+        元组：(视频生成结果, google_file_id)
         
     Raises:
         ValueError: 参数验证失败
     """
     # 根据模型类型调用不同的方法
+    raw_result: Dict[str, Any] = {}
+    
     if request.model == VideoModel.GOOGLE_VEO_T2V:
         # 文生视频模式（纯文本，无图片）
-        result = await google_veo_service.generate_text_to_video(
+        raw_result = await google_veo_service.generate_text_to_video(
             prompt=request.prompt,
-            duration=request.duration.value,
+            duration=request.duration,
             resolution=request.resolution.value.lower(),  # "720P" -> "720p"
             aspect_ratio=request.aspect_ratio or "16:9",
             negative_prompt=None
@@ -364,10 +378,10 @@ async def _generate_google_veo_video(
         if not request.first_frame_base64:
             raise ValueError("Google Veo单图首帧模式需要提供first_frame_base64")
         
-        result = await google_veo_service.generate_image_to_video_first(
+        raw_result = await google_veo_service.generate_image_to_video_first(
             image_base64=request.first_frame_base64,
             prompt=request.prompt,
-            duration=request.duration.value,
+            duration=request.duration,
             resolution=request.resolution.value.lower(),  # "720P" -> "720p"
             aspect_ratio=request.aspect_ratio or "16:9",
             negative_prompt=None
@@ -378,11 +392,11 @@ async def _generate_google_veo_video(
         if not request.first_frame_base64 or not request.last_frame_base64:
             raise ValueError("Google Veo首尾帧模式需要提供first_frame_base64和last_frame_base64")
         
-        result = await google_veo_service.generate_image_to_video_first_tail(
+        raw_result = await google_veo_service.generate_image_to_video_first_tail(
             first_image_base64=request.first_frame_base64,
             last_image_base64=request.last_frame_base64,
             prompt=request.prompt,
-            duration=request.duration.value,
+            duration=request.duration,
             resolution=request.resolution.value.lower(),  # "720P" -> "720p"
             aspect_ratio=request.aspect_ratio or "16:9",
             negative_prompt=None
@@ -391,12 +405,75 @@ async def _generate_google_veo_video(
     else:
         raise ValueError(f"不支持的Google Veo模型: {request.model}")
     
+    # 提取 google_file_id
+    google_file_id = raw_result.get("google_file_id") if isinstance(raw_result, dict) else None
+    
     # 构建响应
-    return ImageToVideoResponse(
-        video_url=result.get("video_url", ""),
+    response = ImageToVideoResponse(
+        video_url=raw_result.get("video_url", ""),
         task_id="",  # Google Veo不返回task_id
         model=request.model.value,
-        duration=result.get("duration", request.duration.value),
+        duration=raw_result.get("duration", request.duration),
         orig_prompt=request.prompt,
         actual_prompt=None
+    )
+    
+    return response, google_file_id
+
+
+async def _generate_sora_video(
+    request: ImageToVideoRequest,
+    first_frame_url: Optional[str]
+) -> ImageToVideoResponse:
+    """使用 Sora 2 API 生成视频.
+    
+    Args:
+        request: 视频生成请求
+        first_frame_url: 首帧图片URL（文生视频时为None）
+        
+    Returns:
+        视频生成结果
+        
+    Raises:
+        ValueError: 参数验证失败
+    """
+    # 映射模型名（前端枚举值 -> Sora API模型名）
+    model_mapping = {
+        VideoModel.SORA_V2_PORTRAIT: "sora_video2",
+        VideoModel.SORA_V2_LANDSCAPE: "sora_video2-landscape",
+        VideoModel.SORA_V2_PORTRAIT_15S: "sora_video2-15s",
+        VideoModel.SORA_V2_LANDSCAPE_15S: "sora_video2-landscape-15s",
+    }
+    
+    sora_model = model_mapping.get(request.model)
+    if not sora_model:
+        raise ValueError(f"不支持的 Sora 模型: {request.model}")
+    
+    # 确定时长（从模型名推断）
+    duration = 15 if "15s" in sora_model else 10
+    
+    # 调用服务
+    if first_frame_url:
+        # 图生视频
+        result = await sora_service.generate_image_to_video(
+            image_url=first_frame_url,
+            prompt=request.prompt,
+            model=sora_model,
+            duration=duration
+        )
+    else:
+        # 文生视频
+        result = await sora_service.generate_text_to_video(
+            prompt=request.prompt,
+            model=sora_model,
+            duration=duration
+        )
+    
+    return ImageToVideoResponse(
+        video_url=result["video_url"],
+        task_id="",  # Sora API不返回task_id
+        model=request.model.value,
+        duration=duration,
+        orig_prompt=request.prompt,
+        actual_prompt=request.prompt  # Sora 不修改提示词
     )

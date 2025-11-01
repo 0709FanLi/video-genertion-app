@@ -4,14 +4,18 @@
  */
 
 import React from 'react';
-import { Card, Space, Radio, Tag } from 'antd';
-import { HighlightOutlined, BorderOutlined } from '@ant-design/icons';
+import { Card, Space, Radio, Select, Tag } from 'antd';
+import { HighlightOutlined, BorderOutlined, VideoCameraOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import useVideoExtensionStore from '../../store/videoExtensionStore';
 
 const ExtensionParams = () => {
   const {
     aspectRatio,
+    duration,
+    resolution,
     setAspectRatio,
+    setDuration,
+    setResolution,
     isExtending
   } = useVideoExtensionStore();
   
@@ -57,25 +61,47 @@ const ExtensionParams = () => {
           </div>
         </div>
         
-        {/* 固定参数提示 */}
-        <div style={{ 
-          padding: '12px', 
-          background: '#f0f5ff', 
-          border: '1px solid #adc6ff',
-          borderRadius: '8px'
-        }}>
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
-            <div style={{ fontWeight: 500, color: '#1890ff' }}>
-              📌 固定参数说明
-            </div>
-            <div style={{ fontSize: '12px', color: '#595959' }}>
-              <Space direction="vertical" size="small">
-                <div>• 分辨率: 固定 <Tag>720P</Tag></div>
-                <div>• 时长: 固定 <Tag>8秒</Tag></div>
-                <div>• 输出数量: <Tag>1个</Tag></div>
-              </Space>
-            </div>
-          </Space>
+        {/* 分辨率选择 */}
+        <div>
+          <div style={{ marginBottom: '12px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ThunderboltOutlined />
+            <span>视频分辨率</span>
+            <Tag color="green">{resolution}</Tag>
+          </div>
+          <Radio.Group
+            value={resolution}
+            onChange={(e) => setResolution(e.target.value)}
+            disabled={isExtending}
+            buttonStyle="solid"
+          >
+            <Radio.Button value="720p">720P</Radio.Button>
+            <Radio.Button value="1080p">1080P</Radio.Button>
+          </Radio.Group>
+          <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+            💡 提示：选择扩展后视频的输出分辨率
+          </div>
+        </div>
+        
+        {/* 时长选择 */}
+        <div>
+          <div style={{ marginBottom: '12px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <VideoCameraOutlined />
+            <span>视频时长</span>
+            <Tag color="orange">{duration}秒</Tag>
+          </div>
+          <Radio.Group
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            disabled={isExtending}
+            buttonStyle="solid"
+          >
+            <Radio.Button value={4}>4秒</Radio.Button>
+            <Radio.Button value={6}>6秒</Radio.Button>
+            <Radio.Button value={8}>8秒</Radio.Button>
+          </Radio.Group>
+          <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+            💡 提示：选择扩展后视频的输出时长
+          </div>
         </div>
       </Space>
     </Card>

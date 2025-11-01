@@ -14,7 +14,7 @@ const { Search } = Input;
 const { Option } = Select;
 const { Text, Paragraph } = Typography;
 
-const UserLibraryModal = ({ open, onClose, onSelectImage }) => {
+const UserLibraryModal = ({ open, onClose, onSelectImage, onSelectVideo, onSelectPrompt, googleVeoOnlyMode = false }) => {
   const [activeTab, setActiveTab] = useState('prompts');
   const [loading, setLoading] = useState(false);
   const [promptsLoading, setPromptsLoading] = useState(false);
@@ -145,9 +145,18 @@ const UserLibraryModal = ({ open, onClose, onSelectImage }) => {
   // 打开弹窗时加载数据
   useEffect(() => {
     if (open) {
-      // 如果有选择回调，默认切换到图片库
-      if (onSelectImage) {
+      // 如果有选择回调，默认切换到对应的Tab
+      if (onSelectPrompt) {
+        setActiveTab('prompts');
+      } else if (onSelectImage) {
         setActiveTab('images');
+      } else if (onSelectVideo) {
+        setActiveTab('videos');
+      }
+      
+      // 如果是从视频扩展页面打开且需要 Google Veo 筛选，自动启用
+      if (googleVeoOnlyMode) {
+        setGoogleVeoOnly(true);
       }
       
       // 先加载总数
@@ -155,8 +164,12 @@ const UserLibraryModal = ({ open, onClose, onSelectImage }) => {
     } else {
       // 关闭弹窗时重置缓存
       setDataLoaded({ prompts: false, images: false, videos: false });
+      // 如果不是强制模式，重置 Google Veo 筛选
+      if (!googleVeoOnlyMode) {
+        setGoogleVeoOnly(false);
+      }
     }
-  }, [open, onSelectImage]);
+  }, [open, onSelectPrompt, onSelectImage, onSelectVideo, googleVeoOnlyMode]);
   
   // 监听 activeTab 变化，加载对应数据
   useEffect(() => {
@@ -186,6 +199,15 @@ const UserLibraryModal = ({ open, onClose, onSelectImage }) => {
     }, 500);
     return () => clearTimeout(timer);
   }, [searchText, modelFilter, googleVeoOnly, activeTab, open, loadPrompts, loadImages, loadVideos]);
+
+  // 处理选择提示词
+  const handleSelectPrompt = (prompt) => {
+    if (onSelectPrompt) {
+      onSelectPrompt(prompt);
+    } else {
+      handlePreviewPrompt(prompt);
+    }
+  };
 
   // 预览提示词
   const handlePreviewPrompt = (prompt) => {
@@ -258,7 +280,18 @@ const UserLibraryModal = ({ open, onClose, onSelectImage }) => {
               <Card
                 hoverable
                 className="library-card"
-                onClick={() => handlePreviewPrompt(prompt)}
+                onClick={() => handleSelectPrompt(prompt)}
+                actions={onSelectPrompt ? [
+                  <CheckOutlined 
+                    key="select" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectPrompt(prompt);
+                    }}
+                    style={{ color: '#1890ff', fontSize: '16px' }}
+                    title="选择此提示词"
+                  />
+                ] : undefined}
               >
                 <div className="prompt-card">
                   <div className="prompt-header">
@@ -321,6 +354,15 @@ const UserLibraryModal = ({ open, onClose, onSelectImage }) => {
       onSelectImage(image);
     } else {
       handlePreviewImage(image);
+    }
+  };
+
+  // 处理选择视频
+  const handleSelectVideo = (video) => {
+    if (onSelectVideo) {
+      onSelectVideo(video);
+    } else {
+      handlePreviewVideo(video);
     }
   };
 
@@ -411,11 +453,15 @@ const UserLibraryModal = ({ open, onClose, onSelectImage }) => {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16 }}>
         <Row gutter={[16, 16]}>
-          {videos.map((video) => (
+          {videos.map((video) => {
+            // 在 Google Veo 模式下，非 Google Veo 视频不可选择
+            const isSelectable = !onSelectVideo || (googleVeoOnlyMode ? video.is_google_veo : true);
+            
+            return (
             <Col xs={12} sm={8} md={6} lg={6} key={video.id}>
               <Card
-                hoverable
-                className="library-card video-card"
+                hoverable={isSelectable}
+                className={`library-card video-card ${!isSelectable ? 'video-card-disabled' : ''}`}
                 cover={
                   <div className="video-cover">
                     <video
@@ -439,7 +485,27 @@ const UserLibraryModal = ({ open, onClose, onSelectImage }) => {
                   </div>
                 }
                 actions={[
-                  <EyeOutlined key="view" onClick={() => handlePreviewVideo(video)} />,
+                  onSelectVideo ? (
+                    <CheckOutlined 
+                      key="select" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isSelectable) {
+                          handleSelectVideo(video);
+                        } else {
+                          message.warning('Google Veo 视频延长仅支持延长由其生成的视频');
+                        }
+                      }}
+                      style={{ 
+                        color: isSelectable ? '#1890ff' : '#d9d9d9', 
+                        fontSize: '16px',
+                        cursor: isSelectable ? 'pointer' : 'not-allowed'
+                      }}
+                      title={isSelectable ? "选择此视频" : "仅 Google Veo 视频可延长"}
+                    />
+                  ) : (
+                    <EyeOutlined key="view" onClick={() => handlePreviewVideo(video)} />
+                  ),
                   <DownloadOutlined 
                     key="download" 
                     onClick={(e) => {
@@ -448,6 +514,17 @@ const UserLibraryModal = ({ open, onClose, onSelectImage }) => {
                     }} 
                   />
                 ]}
+                onClick={() => {
+                  if (onSelectVideo) {
+                    if (isSelectable) {
+                      handleSelectVideo(video);
+                    } else {
+                      message.warning('Google Veo 视频延长仅支持延长由其生成的视频');
+                    }
+                  } else {
+                    handlePreviewVideo(video);
+                  }
+                }}
               >
                 <Card.Meta
                   description={
@@ -468,7 +545,8 @@ const UserLibraryModal = ({ open, onClose, onSelectImage }) => {
                 />
               </Card>
             </Col>
-          ))}
+          );
+          })}
         </Row>
       </div>
       
@@ -595,6 +673,7 @@ const UserLibraryModal = ({ open, onClose, onSelectImage }) => {
                 placeholder="Google Veo筛选"
                 value={googleVeoOnly}
                 onChange={setGoogleVeoOnly}
+                disabled={googleVeoOnlyMode}
                 style={{ width: 200 }}
               >
                 <Option value={false}>全部视频</Option>

@@ -3,7 +3,8 @@
  */
 
 import React, { useEffect } from 'react';
-import { Layout, Row, Col, Alert, Spin, message } from 'antd';
+import { Layout, Row, Col, Alert, Spin, message, Button } from 'antd';
+import { RocketOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import PromptInput from './PromptInput';
 import ModelSelector from './ModelSelector';
 import ReferenceUpload from './ReferenceUpload';
@@ -28,7 +29,11 @@ const TextToImagePage = () => {
     clearError,
     setLoadingModels,
     addGeneratedImages,
-    addToHistory
+    addToHistory,
+    numImages,
+    imageSize,
+    userPrompt,
+    optimizedPrompt
   } = useImageStore();
   
   // 加载模型列表
@@ -49,8 +54,11 @@ const TextToImagePage = () => {
     loadModels();
   }, []);
   
+  // 检查是否可以生成
+  const canGenerate = (userPrompt.trim() || optimizedPrompt.trim()) && !isGenerating;
+  
   // 生成图片
-  const handleGenerate = async ({ numImages, size }) => {
+  const handleGenerate = async () => {
     const prompt = getCurrentPrompt();
     
     if (!prompt || !prompt.trim()) {
@@ -75,11 +83,11 @@ const TextToImagePage = () => {
       
       message.loading({ content: '正在生成图片...', key: 'generating', duration: 0 });
       
-      // 调用API
+      // 调用API（从 store 获取参数）
       const result = await textToImageAPI.generateImage({
         prompt,
         model: selectedImageModel,
-        size,
+        size: imageSize,
         num_images: numImages,
         reference_image_urls: referenceImageUrls
       });
@@ -175,14 +183,83 @@ const TextToImagePage = () => {
           {/* 左侧：输入和配置 */}
           <Col xs={24} lg={10}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-              {/* 提示词输入 */}
-              <PromptInput />
+              {/* 1. 模型选择（顶部） */}
+              <ModelSelector />
               
-              {/* 参考图上传 */}
+              {/* 2. 参考图上传（中间） */}
               <ReferenceUpload />
               
-              {/* 模型选择和生成按钮 */}
-              <ModelSelector onGenerate={handleGenerate} />
+              {/* 3. 提示词输入（底部） */}
+              <PromptInput />
+              
+              {/* 4. 生成按钮（底部） */}
+              <Button 
+                type="primary"
+                icon={<RocketOutlined />}
+                size="large"
+                block
+                loading={isGenerating}
+                disabled={!canGenerate}
+                onClick={handleGenerate}
+                style={{
+                  height: 50,
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  background: canGenerate 
+                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    : undefined,
+                  border: 'none',
+                  cursor: canGenerate ? 'pointer' : 'not-allowed',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  boxShadow: canGenerate ? '0 4px 12px rgba(102, 126, 234, 0.4)' : 'none',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  if (canGenerate) {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.5)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (canGenerate) {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                  }
+                }}
+              >
+                {isGenerating ? '生成中...' : '🚀 开始生成图片'}
+              </Button>
+              
+              {/* 提示信息 */}
+              {!canGenerate && !isGenerating && (
+                <div style={{ 
+                  padding: '8px 12px', 
+                  backgroundColor: '#fff7e6', 
+                  borderRadius: 4,
+                  fontSize: 12,
+                  color: '#d46b08'
+                }}>
+                  <InfoCircleOutlined style={{ marginRight: 8 }} />
+                  请先输入提示词
+                </div>
+              )}
+              
+              {isGenerating && (
+                <div style={{ 
+                  padding: '8px 12px', 
+                  backgroundColor: '#e6f7ff', 
+                  borderRadius: 4,
+                  fontSize: 12,
+                  color: '#1890ff'
+                }}>
+                  <InfoCircleOutlined style={{ marginRight: 8 }} />
+                  正在生成图片，通常需要 30-60 秒...
+                </div>
+              )}
             </div>
           </Col>
           
