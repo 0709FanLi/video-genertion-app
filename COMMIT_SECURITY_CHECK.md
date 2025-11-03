@@ -17,7 +17,7 @@
 
 ### 1. DashScope API Key（阿里云）
 
-**密钥值**: `sk-8b6db5929e244a159deb8e77b08bcf5b`
+**密钥值**: `sk-8b6db59...` (已掩码，已更换)
 
 **出现位置**:
 
@@ -25,14 +25,14 @@
 ```python
 dashscope_api_key: str = os.getenv(
     "DASHSCOPE_API_KEY", 
-    "sk-8b6db5929e244a159deb8e77b08bcf5b"  # ❌ 硬编码密钥
+    "sk-8b6db59..."  # ❌ 硬编码密钥（已掩码）
 )
 ```
 **风险等级**: 🔴 **高危** - 代码文件中硬编码了真实的API密钥作为默认值
 
 #### 1.2 `backend/main.py` (第13行)
 ```python
-DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "sk-8b6db5929e244a159deb8e77b08bcf5b")
+DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "sk-8b6db59...")  # 已掩码
 ```
 **风险等级**: 🔴 **高危** - 代码文件中硬编码了真实的API密钥
 
@@ -69,11 +69,11 @@ DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "sk-8b6db5929e244a159deb8e77b
 
 ### 1. 立即轮换密钥 ⚠️ **重要**
 
-**DashScope API Key**: `sk-8b6db5929e244a159deb8e77b08bcf5b`
+**DashScope API Key**: `sk-8b6db59...` (已掩码，已更换)
 
 **操作步骤**:
 1. 访问：https://dashscope.console.aliyun.com/apiKey
-2. 找到并删除密钥：`sk-8b6db5929e244a159deb8e77b08bcf5b`
+2. 找到并删除密钥（前缀：`sk-8b6db59...`，已更换）
 3. 创建新的API密钥
 4. 更新本地 `.env` 文件
 5. 检查API调用日志，确认是否有异常访问

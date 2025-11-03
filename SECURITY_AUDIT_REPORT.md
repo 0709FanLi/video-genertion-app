@@ -60,12 +60,12 @@ DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
 
 在Git历史diff中发现以下密钥（**仅在diff删除行中，不是当前代码**）：
 
-1. **DashScope API Key**: `sk-8b6db5929e244a159deb8e77b08bcf5b`
+1. **DashScope API Key**: `sk-8b6db59...` (已掩码，已更换)
    - **位置**: Git历史diff中的删除行（`-` 号）
    - **状态**: ✅ 已在后续提交中删除
    - **当前状态**: ✅ 不再存在于代码中
 
-2. **DeepSeek API Key**: `sk-1c800af6292943b2b49088c494c4d5a1`
+2. **DeepSeek API Key**: `sk-1c800af6...` (已截断，完整密钥已从历史中删除)
    - **位置**: Git历史diff中的删除行
    - **状态**: ✅ 已在后续提交中删除
 
