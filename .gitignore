@@ -25,23 +25,40 @@ config.local.*
 **/secrets/
 **/credentials/
 
-# 日志文件
+# 日志和进程ID文件
 *.log
-*.pid
+**/*.log
 backend.log
 frontend.log
+backend/app.log
+
+*.pid
+**/*.pid
+backend.pid
+frontend.pid
+.frontend.pid
 
 # 数据库文件
 *.db
 *.db-shm
 *.db-wal
+**/*.db
+**/*.db-shm
+**/*.db-wal
 
-# Python缓存
+# Python缓存和编译文件
 __pycache__/
+**/__pycache__/
 *.py[cod]
+*.pyc
 *$py.class
 *.so
 .Python
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
 
 # 虚拟环境
 venv/
@@ -57,4 +74,38 @@ ENV/
 
 # 系统文件
 .DS_Store
+**/.DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# 临时文件和备份
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+.*.swp
+.*.swo
+
+# 构建和分发文件
+dist/
+build/
+*.egg-info/
+.eggs/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+
+# 测试和覆盖率
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# 其他运行时文件
+*.lock
+package-lock.json.backup
+yarn.lock.backup
