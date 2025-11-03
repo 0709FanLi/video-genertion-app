@@ -189,3 +189,6 @@ INFO:     127.0.0.1:53907 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
 INFO:     127.0.0.1:53911 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
 2025-11-03 09:56:00,671 - app.api.routes.text_to_image - INFO - 获取模型列表
 INFO:     127.0.0.1:53911 - "GET /api/text-to-image/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56005 - "OPTIONS /api/text-to-image/models HTTP/1.1" 200 OK
+2025-11-03 10:45:59,865 - app.api.routes.text_to_image - INFO - 获取模型列表
+INFO:     127.0.0.1:56005 - "GET /api/text-to-image/models HTTP/1.1" 200 OK

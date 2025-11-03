@@ -13,3 +13,5 @@
 9:49:04 AM [vite] (client) hmr update /src/components/TextToImage/index.jsx
 9:49:04 AM [vite] (client) hmr update /src/components/VideoExtension/index.jsx
 9:49:04 AM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx
+10:45:59 AM [vite] (client) hmr update /src/components/TextToImage/index.jsx, /src/components/TextToImage/ModelSelector.jsx, /src/components/TextToImage/PromptInput.jsx, /src/components/TextToImage/ReferenceUpload.jsx, /src/components/TextToImage/ResultGrid.jsx
+10:45:59 AM [vite] (client) hmr update /src/components/TextToImage/ModelSelector.jsx

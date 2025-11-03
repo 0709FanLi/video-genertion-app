@@ -47,18 +47,27 @@
 ### OSS配置
 ```python
 # backend/app/core/config.py
+# 注意：实际配置应从环境变量读取，不要在代码中硬编码密钥
 oss_access_key_id: str = os.getenv("OSS_ACCESS_KEY_ID", "")
 oss_access_key_secret: str = os.getenv("OSS_ACCESS_KEY_SECRET", "")
-oss_endpoint: str = "https://oss-cn-shanghai.aliyuncs.com"  # 华东2上海
-oss_bucket_name: str = "tool251027"
+oss_endpoint: str = os.getenv("OSS_ENDPOINT", "https://oss-cn-shanghai.aliyuncs.com")  # 华东2上海
+oss_bucket_name: str = os.getenv("OSS_BUCKET_NAME", "")
 oss_public_read: bool = True  # Bucket为公共读
 oss_url_expire_seconds: int = 3600  # 签名URL有效期
-oss_max_file_size: int = 10 * 1024 * 1024  # 最大10MB
+oss_max_file_size: int = 50 * 1024 * 1024  # 最大50MB
+```
+
+**环境变量配置**（在 `.env` 文件中设置）：
+```bash
+OSS_ACCESS_KEY_ID=your-access-key-id
+OSS_ACCESS_KEY_SECRET=your-access-key-secret
+OSS_ENDPOINT=https://oss-cn-shanghai.aliyuncs.com
+OSS_BUCKET_NAME=your-bucket-name
 ```
 
 ### 目录结构
 ```
-tool251027/  (OSS Bucket)
+your-bucket-name/  (OSS Bucket)
 ├── images/              # 生成的图片
 │   └── 2025/01/27/     # 按日期分类
 ├── videos/              # 生成的视频
@@ -110,10 +119,10 @@ curl -X POST http://localhost:8000/api/files/upload \
 ```json
 {
   "object_key": "references/2025/01/27/abc12345_test.jpg",
-  "url": "https://tool251027.oss-cn-shanghai.aliyuncs.com/references/2025/01/27/abc12345_test.jpg",
+  "url": "https://your-bucket-name.oss-cn-shanghai.aliyuncs.com/references/2025/01/27/abc12345_test.jpg",
   "size": 102400,
   "content_type": "image/jpeg",
-  "bucket": "tool251027"
+  "bucket": "your-bucket-name"
 }
 ```
 
@@ -126,7 +135,7 @@ curl http://localhost:8000/api/files/health
 ```json
 {
   "status": "healthy",
-  "bucket": "tool251027",
+  "bucket": "your-bucket-name",
   "endpoint": "https://oss-cn-shanghai.aliyuncs.com",
   "public_read": true
 }
@@ -202,7 +211,7 @@ curl http://localhost:8000/api/files/health
 ```json
 {
   "status": "healthy",
-  "bucket": "tool251027",
+  "bucket": "your-bucket-name",
   "endpoint": "https://oss-cn-shanghai.aliyuncs.com",
   "public_read": true
 }
