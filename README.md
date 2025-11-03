@@ -51,10 +51,16 @@ pip3 install fastapi uvicorn python-multipart openai requests
 
 ### 2. 配置API密钥
 
-在 `backend/main.py` 中，API密钥已经配置为：
-```python
-DASHSCOPE_API_KEY = "sk-8b6db5929e244a159deb8e77b08bcf5b"
+创建 `backend/.env` 文件（如果不存在），并添加您的API密钥：
+```bash
+# 复制示例文件
+cp backend/.env.example backend/.env
+
+# 编辑 .env 文件，填入您的API密钥
+# DASHSCOPE_API_KEY=your-api-key-here
 ```
+
+**重要**：请勿将真实的API密钥提交到Git仓库！
 
 ### 3. 启动后端服务
 

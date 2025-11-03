@@ -96,17 +96,43 @@ class ImageToVideoRequest(BaseModel):
     @field_validator("first_frame_base64", "last_frame_base64")
     @classmethod
     def validate_base64(cls, v: Optional[str]) -> Optional[str]:
-        """验证Base64编码格式."""
+        """验证Base64编码格式或URL格式."""
+        # 处理None、空字符串和空值
         if v is None:
-            return v
+            return None
         
-        # 检查是否包含data URI前缀
-        if not v.startswith("data:image/"):
-            raise ValueError(
-                "图片必须为Base64格式，格式: data:image/{type};base64,{data}"
-            )
+        # 转换为字符串并去除首尾空格
+        v_str = str(v).strip() if v else ""
+        if not v_str or v_str == "null" or v_str == "undefined":
+            return None
         
-        return v
+        # 检查是否是Base64格式的Data URI
+        # 支持格式：
+        # - data:image/{type};base64,{data}
+        # - data:application/octet-stream;base64,{data} (前端可能使用的格式)
+        if v_str.startswith("data:image/") or v_str.startswith("data:application/octet-stream"):
+            # 进一步验证是否包含base64数据
+            if ";base64," in v_str:
+                return v_str
+            else:
+                raise ValueError(
+                    f"Base64数据URI格式不正确，必须包含 ;base64, 分隔符。"
+                    f"当前值: {v_str[:50]}..." if len(v_str) > 50 else f"当前值: {v_str}"
+                )
+        
+        # 检查是否是URL格式 (http:// 或 https://)
+        if v_str.startswith("http://") or v_str.startswith("https://"):
+            return v_str
+        
+        # 如果是空字符串或null，返回None（允许可选字段为空）
+        if v_str in ["", "null", "undefined"]:
+            return None
+        
+        # 既不是Base64也不是URL，抛出错误
+        raise ValueError(
+            f"图片必须为Base64格式 (data:image/{{type}};base64,{{data}} 或 data:application/octet-stream;base64,{{data}}) 或有效的HTTP(S) URL。"
+            f"当前值: {v_str[:50]}..." if len(v_str) > 50 else f"当前值: {v_str}"
+        )
     
     @field_validator("model")
     @classmethod

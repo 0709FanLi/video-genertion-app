@@ -3,7 +3,13 @@
 > vite
 
 
-  VITE v7.1.12  ready in 150 ms
+  VITE v7.1.12  ready in 80 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
+9:48:50 AM [vite] (client) hmr update /src/components/TextToImage/index.jsx
+9:48:51 AM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx
+9:48:52 AM [vite] (client) hmr update /src/components/VideoExtension/index.jsx
+9:49:04 AM [vite] (client) hmr update /src/components/TextToImage/index.jsx
+9:49:04 AM [vite] (client) hmr update /src/components/VideoExtension/index.jsx
+9:49:04 AM [vite] (client) hmr update /src/components/ImageToVideo/index.jsx

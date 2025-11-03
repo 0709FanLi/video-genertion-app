@@ -10,7 +10,13 @@ from pydantic import BaseModel
 from openai import OpenAI
 
 # --- 配置 ---
-DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "sk-8b6db5929e244a159deb8e77b08bcf5b")
+# 从环境变量读取API密钥，如果没有设置则抛出错误
+DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
+if not DASHSCOPE_API_KEY:
+    raise ValueError(
+        "DASHSCOPE_API_KEY环境变量未设置。"
+        "请创建.env文件或设置环境变量：DASHSCOPE_API_KEY=your-api-key"
+    )
 QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 WANX_BASE_URL = "https://dashscope.aliyuncs.com/api/v1"
 

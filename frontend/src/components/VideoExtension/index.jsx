@@ -159,7 +159,18 @@ const VideoExtensionPage = () => {
       <Row gutter={[24, 24]}>
         {/* 左侧：配置区域 */}
         <Col xs={24} lg={12}>
-          <Space direction="vertical" style={{ width: '100%' }} size="large">
+          <Space 
+            direction="vertical" 
+            style={{ 
+              width: '100%',
+              position: 'sticky',
+              top: '88px', // Header高度(64px) + padding(24px)
+              maxHeight: 'calc(100vh - 112px)', // 视口高度减去Header和padding
+              overflowY: 'auto',
+              paddingRight: '8px' // 为滚动条留出空间
+            }} 
+            size="large"
+          >
             {/* 1. 模型选择（顶部） */}
             <ModelSelector />
             

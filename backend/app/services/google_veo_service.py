@@ -43,15 +43,38 @@ class GoogleVeoService(LoggerMixin):
     
     def __init__(self) -> None:
         """初始化Google Veo服务."""
-        # 设置环境变量（Google SDK会自动读取）
-        os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
+        # 检查配置是否完整
+        self._is_configured = bool(settings.gemini_api_key)
         
-        self.client = genai.Client()
+        # 初始化客户端（如果配置完整）
+        self.client = None
         self.model = "veo-3.1-generate-preview"
         self.poll_interval = 10  # 每10秒轮询一次
         self.max_wait_time = 600  # 最多等待10分钟
         
-        self.logger.info("GoogleVeoService初始化完成")
+        if self._is_configured:
+            try:
+                # 设置环境变量（Google SDK会自动读取）
+                os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
+                self.client = genai.Client()
+                self.logger.info("GoogleVeoService初始化完成")
+            except Exception as e:
+                self.logger.warning(f"Google Veo初始化失败（将延迟初始化）: {e}")
+                self._is_configured = False
+                self.client = None
+        else:
+            self.logger.warning(
+                "Google Veo配置不完整，Google Veo功能将不可用。"
+                "请设置 GEMINI_API_KEY 环境变量。"
+            )
+    
+    def _ensure_configured(self) -> None:
+        """确保Google Veo已配置，否则抛出异常."""
+        if not self._is_configured or not self.client:
+            raise ApiError(
+                message="Google Veo服务未配置",
+                detail="请配置 GEMINI_API_KEY 环境变量"
+            )
     
     @retry_decorator(max_attempts=3, wait_multiplier=1, wait_min=2, wait_max=10)
     async def extend_video(
@@ -675,6 +698,7 @@ class GoogleVeoService(LoggerMixin):
         Raises:
             ApiError: API调用失败
         """
+        self._ensure_configured()
         self.logger.info(
             f"开始文生视频: duration={duration}s, "
             f"resolution={resolution}, aspect_ratio={aspect_ratio}"
@@ -913,6 +937,7 @@ class GoogleVeoService(LoggerMixin):
         Raises:
             ApiError: API调用失败
         """
+        self._ensure_configured()
         self.logger.info(
             f"开始首尾帧插值生成视频: duration={duration}s, "
             f"resolution={resolution}, aspect_ratio={aspect_ratio}"

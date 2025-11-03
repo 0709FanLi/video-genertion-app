@@ -44,20 +44,43 @@ class OSSService:
         self.url_expire_seconds = settings.oss_url_expire_seconds
         self.max_file_size = settings.oss_max_file_size
         
-        # 初始化OSS客户端
-        try:
-            self.auth = oss2.Auth(self.access_key_id, self.access_key_secret)
-            self.bucket = oss2.Bucket(
-                self.auth, 
-                self.endpoint, 
-                self.bucket_name
+        # 检查配置是否完整
+        self._is_configured = bool(
+            self.access_key_id and 
+            self.access_key_secret and 
+            self.bucket_name
+        )
+        
+        # 初始化OSS客户端（如果配置完整）
+        self.auth = None
+        self.bucket = None
+        
+        if self._is_configured:
+            try:
+                self.auth = oss2.Auth(self.access_key_id, self.access_key_secret)
+                self.bucket = oss2.Bucket(
+                    self.auth, 
+                    self.endpoint, 
+                    self.bucket_name
+                )
+                logger.info(f"OSSService初始化完成: bucket={self.bucket_name}")
+            except Exception as e:
+                logger.warning(f"OSS初始化失败（将延迟初始化）: {e}")
+                self._is_configured = False
+                self.auth = None
+                self.bucket = None
+        else:
+            logger.warning(
+                "OSS配置不完整，OSS功能将不可用。"
+                "请设置 OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET, OSS_BUCKET_NAME 环境变量。"
             )
-            logger.info(f"OSSService初始化完成: bucket={self.bucket_name}")
-        except Exception as e:
-            logger.error(f"OSS初始化失败: {e}")
+    
+    def _ensure_configured(self) -> None:
+        """确保OSS已配置，否则抛出异常."""
+        if not self._is_configured or not self.bucket:
             raise ApiError(
-                message="OSS服务初始化失败",
-                detail=str(e)
+                message="OSS服务未配置",
+                detail="请配置 OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET, OSS_BUCKET_NAME 环境变量"
             )
     
     def _generate_object_key(
@@ -115,6 +138,7 @@ class OSSService:
         Returns:
             带签名的URL
         """
+        self._ensure_configured()
         if expires is None:
             expires = self.url_expire_seconds
         
@@ -147,6 +171,7 @@ class OSSService:
         Raises:
             ApiError: 上传失败
         """
+        self._ensure_configured()
         try:
             # 读取文件内容
             file_content = file_data.read()
@@ -294,6 +319,7 @@ class OSSService:
         Raises:
             ApiError: 删除失败
         """
+        self._ensure_configured()
         try:
             logger.info(f"删除文件: {object_key}")
             self.bucket.delete_object(object_key)
@@ -330,6 +356,7 @@ class OSSService:
         Raises:
             ApiError: 列举失败
         """
+        self._ensure_configured()
         try:
             logger.info(f"列举文件: prefix={prefix}, max_keys={max_keys}")
             
@@ -374,6 +401,7 @@ class OSSService:
         Returns:
             文件是否存在
         """
+        self._ensure_configured()
         try:
             return self.bucket.object_exists(object_key)
         except Exception as e:
@@ -459,7 +487,8 @@ class OSSService:
             
             logger.info(f"从OSS下载文件: object_key={object_key}")
             
-            # 从OSS下载文件
+            # 从OSS下载文件（需要配置）
+            self._ensure_configured()
             result = self.bucket.get_object(object_key)
             file_content = result.read()
             
@@ -487,6 +516,8 @@ class OSSService:
         Returns:
             服务是否可用
         """
+        if not self._is_configured or not self.bucket:
+            return False
         try:
             # 尝试列举文件（限制1个）
             self.bucket.list_objects(max_keys=1)

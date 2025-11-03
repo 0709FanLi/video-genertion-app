@@ -182,7 +182,16 @@ const TextToImagePage = () => {
         <Row gutter={[24, 24]}>
           {/* 左侧：输入和配置 */}
           <Col xs={24} lg={10}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 24,
+              position: 'sticky',
+              top: '88px', // Header高度(64px) + padding(24px)
+              maxHeight: 'calc(100vh - 112px)', // 视口高度减去Header和padding
+              overflowY: 'auto',
+              paddingRight: '8px' // 为滚动条留出空间
+            }}>
               {/* 1. 模型选择（顶部） */}
               <ModelSelector />
               

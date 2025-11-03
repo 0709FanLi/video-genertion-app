@@ -42,19 +42,40 @@ def base64_to_oss_url(base64_data: Optional[str]) -> Optional[str]:
         
     Returns:
         OSS图片URL，如果输入为None则返回None
+        
+    Raises:
+        ApiError: OSS服务未配置或其他OSS相关错误
+        HTTPException: 其他错误
     """
     if not base64_data:
         return None
     
     try:
         # 解析Base64数据
-        if not base64_data.startswith("data:image/"):
+        # 支持格式：data:image/{type};base64,{data} 或 data:application/octet-stream;base64,{data}
+        if not (base64_data.startswith("data:image/") or base64_data.startswith("data:application/octet-stream")):
             raise ValueError("Invalid Base64 format")
         
         # 提取MIME类型和Base64数据
         header, encoded = base64_data.split(",", 1)
-        mime_type = header.split(":")[1].split(";")[0]  # e.g., "image/jpeg"
-        image_ext = mime_type.split("/")[1]  # e.g., "jpeg"
+        mime_type_str = header.split(":")[1].split(";")[0]  # e.g., "image/jpeg" 或 "application/octet-stream"
+        
+        # 如果MIME类型是 application/octet-stream，尝试从Base64数据推断类型
+        if mime_type_str == "application/octet-stream":
+            # 尝试从Base64数据推断图片类型（JPEG通常以 /9j/ 开头，PNG以 iVBORw0KGgo 开头）
+            if encoded.startswith("/9j/"):
+                mime_type = "image/jpeg"
+                image_ext = "jpeg"
+            elif encoded.startswith("iVBORw0KGgo"):
+                mime_type = "image/png"
+                image_ext = "png"
+            else:
+                # 默认使用jpeg
+                mime_type = "image/jpeg"
+                image_ext = "jpeg"
+        else:
+            mime_type = mime_type_str
+            image_ext = mime_type.split("/")[1]  # e.g., "jpeg"
         
         # 解码Base64
         image_data = base64.b64decode(encoded)
@@ -66,7 +87,8 @@ def base64_to_oss_url(base64_data: Optional[str]) -> Optional[str]:
         filename = f"video_frames/{datetime.now().strftime('%Y/%m/%d')}/{uuid.uuid4().hex}.{image_ext}"
         
         # 上传到OSS
-        oss_result = oss_service.upload_file(image_file, filename, mime_type)
+        # 注意：这里会抛出 ApiError 如果OSS未配置
+        oss_result = oss_service.upload_file(image_file, filename, "images", mime_type)
         logger.info(f"Base64图片已上传到OSS: {oss_result}")
         
         # 提取URL字符串
@@ -77,7 +99,12 @@ def base64_to_oss_url(base64_data: Optional[str]) -> Optional[str]:
         
         return oss_url
         
+    except ApiError as e:
+        # OSS服务错误（包括未配置），直接重新抛出以便上层识别
+        logger.error(f"Base64转OSS URL失败: {e.message}, 详情: {e.detail}")
+        raise
     except Exception as e:
+        # 其他错误转换为HTTPException
         logger.error(f"Base64转OSS URL失败: {str(e)}")
         raise HTTPException(
             status_code=500,
@@ -149,9 +176,82 @@ async def generate_video(
             f"model={request.model}, duration={request.duration}s"
         )
         
-        # 将Base64图片转换为OSS URL（如果需要）
-        first_frame_url = base64_to_oss_url(request.first_frame_base64) if request.first_frame_base64 else None
-        last_frame_url = base64_to_oss_url(request.last_frame_base64) if request.last_frame_base64 else None
+        # 将Base64图片或URL转换为OSS URL（如果需要）
+        # 如果是URL格式，直接使用；如果是Base64格式，尝试上传到OSS
+        # 注意：Google Veo模型可以直接使用Base64格式，不需要OSS转换
+        is_google_veo = request.model in [
+            VideoModel.GOOGLE_VEO_T2V, 
+            VideoModel.GOOGLE_VEO_I2V_FIRST, 
+            VideoModel.GOOGLE_VEO_I2V_FIRST_TAIL
+        ]
+        
+        if request.first_frame_base64:
+            if request.first_frame_base64.startswith("http://") or request.first_frame_base64.startswith("https://"):
+                first_frame_url = request.first_frame_base64  # 直接使用URL
+            elif is_google_veo:
+                # Google Veo模型可以直接使用Base64，不需要OSS转换
+                first_frame_url = request.first_frame_base64
+            else:
+                # 其他模型需要Base64格式上传到OSS，如果OSS未配置则抛出错误
+                try:
+                    first_frame_url = base64_to_oss_url(request.first_frame_base64)  # Base64转OSS
+                except ApiError as e:
+                    # 检查是否是OSS未配置的错误
+                    if "OSS服务未配置" in e.message or "OSS" in e.message:
+                        raise HTTPException(
+                            status_code=400,
+                            detail={
+                                "message": "OSS服务未配置",
+                                "detail": "Base64格式的图片需要OSS服务支持。请配置OSS或使用图片URL格式。"
+                            }
+                        )
+                    # 其他ApiError也需要转换为HTTPException
+                    raise HTTPException(
+                        status_code=e.status_code,
+                        detail={
+                            "message": e.message,
+                            "detail": str(e.detail) if e.detail else None
+                        }
+                    )
+                except HTTPException:
+                    # HTTPException直接重新抛出
+                    raise
+        else:
+            first_frame_url = None
+            
+        if request.last_frame_base64:
+            if request.last_frame_base64.startswith("http://") or request.last_frame_base64.startswith("https://"):
+                last_frame_url = request.last_frame_base64  # 直接使用URL
+            elif is_google_veo:
+                # Google Veo模型可以直接使用Base64，不需要OSS转换
+                last_frame_url = request.last_frame_base64
+            else:
+                # 其他模型需要Base64格式上传到OSS，如果OSS未配置则抛出错误
+                try:
+                    last_frame_url = base64_to_oss_url(request.last_frame_base64)  # Base64转OSS
+                except ApiError as e:
+                    # 检查是否是OSS未配置的错误
+                    if "OSS服务未配置" in e.message or "OSS" in e.message:
+                        raise HTTPException(
+                            status_code=400,
+                            detail={
+                                "message": "OSS服务未配置",
+                                "detail": "Base64格式的图片需要OSS服务支持。请配置OSS或使用图片URL格式。"
+                            }
+                        )
+                    # 其他ApiError也需要转换为HTTPException
+                    raise HTTPException(
+                        status_code=e.status_code,
+                        detail={
+                            "message": e.message,
+                            "detail": str(e.detail) if e.detail else None
+                        }
+                    )
+                except HTTPException:
+                    # HTTPException直接重新抛出
+                    raise
+        else:
+            last_frame_url = None
         
         logger.info(f"图片已转换为OSS URL: first={bool(first_frame_url)}, last={bool(last_frame_url)}")
         if first_frame_url:
@@ -266,7 +366,7 @@ async def _generate_volc_video(
         result = await volc_video_service.generate_image_to_video_first(
             image_url=first_frame_url,
             prompt=request.prompt,
-            duration=request.duration.value
+            duration=request.duration
         )
     
     elif request.model == VideoModel.VOLC_I2V_FIRST_TAIL:
@@ -278,7 +378,7 @@ async def _generate_volc_video(
             first_image_url=first_frame_url,
             last_image_url=last_frame_url,
             prompt=request.prompt,
-            duration=request.duration.value
+            duration=request.duration
         )
     
     else:
@@ -289,7 +389,7 @@ async def _generate_volc_video(
         video_url=result.get("video_url", ""),
         task_id="",  # 火山引擎不返回task_id
         model=request.model.value,
-        duration=request.duration.value,
+        duration=request.duration,
         orig_prompt=request.prompt,
         actual_prompt=None
     )
@@ -378,8 +478,19 @@ async def _generate_google_veo_video(
         if not request.first_frame_base64:
             raise ValueError("Google Veo单图首帧模式需要提供first_frame_base64")
         
+        # Google Veo需要Base64格式，如果是URL需要先下载并转换为Base64
+        image_base64 = request.first_frame_base64
+        if image_base64.startswith("http://") or image_base64.startswith("https://"):
+            # 如果是URL，需要下载并转换为Base64
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(image_base64)
+                response.raise_for_status()
+                import base64
+                image_base64 = f"data:image/jpeg;base64,{base64.b64encode(response.content).decode()}"
+        
         raw_result = await google_veo_service.generate_image_to_video_first(
-            image_base64=request.first_frame_base64,
+            image_base64=image_base64,
             prompt=request.prompt,
             duration=request.duration,
             resolution=request.resolution.value.lower(),  # "720P" -> "720p"
@@ -392,9 +503,29 @@ async def _generate_google_veo_video(
         if not request.first_frame_base64 or not request.last_frame_base64:
             raise ValueError("Google Veo首尾帧模式需要提供first_frame_base64和last_frame_base64")
         
+        # Google Veo需要Base64格式，如果是URL需要先下载并转换为Base64
+        first_image_base64 = request.first_frame_base64
+        last_image_base64 = request.last_frame_base64
+        
+        if first_image_base64.startswith("http://") or first_image_base64.startswith("https://"):
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(first_image_base64)
+                response.raise_for_status()
+                import base64
+                first_image_base64 = f"data:image/jpeg;base64,{base64.b64encode(response.content).decode()}"
+        
+        if last_image_base64.startswith("http://") or last_image_base64.startswith("https://"):
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(last_image_base64)
+                response.raise_for_status()
+                import base64
+                last_image_base64 = f"data:image/jpeg;base64,{base64.b64encode(response.content).decode()}"
+        
         raw_result = await google_veo_service.generate_image_to_video_first_tail(
-            first_image_base64=request.first_frame_base64,
-            last_image_base64=request.last_frame_base64,
+            first_image_base64=first_image_base64,
+            last_image_base64=last_image_base64,
             prompt=request.prompt,
             duration=request.duration,
             resolution=request.resolution.value.lower(),  # "720P" -> "720p"

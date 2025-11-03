@@ -56,10 +56,7 @@ class Settings(BaseSettings):
     ]
     
     # 阿里云DashScope配置
-    dashscope_api_key: str = os.getenv(
-        "DASHSCOPE_API_KEY", 
-        "sk-8b6db5929e244a159deb8e77b08bcf5b"
-    )
+    dashscope_api_key: str = os.getenv("DASHSCOPE_API_KEY", "")
     qwen_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     wanx_base_url: str = "https://dashscope.aliyuncs.com/api/v1"
     
@@ -69,17 +66,14 @@ class Settings(BaseSettings):
     volc_base_url: str = "https://visual.volcengineapi.com"
     
     # DeepSeek配置
-    deepseek_api_key: str = ""
+    deepseek_api_key: str = os.getenv("DEEPSEEK_API_KEY", "")
     deepseek_base_url: str = "https://api.deepseek.com"
     
     # Google Gemini/Veo配置
-    gemini_api_key: str = ""
+    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
     
     # Sora 2 API配置
-    sora_api_key: str = os.getenv(
-        "SORA_API_KEY",
-        "sk-xwr8Ej6nftgmu5vCBe46B27b06054866Bc39325441A232Fc"
-    )
+    sora_api_key: str = ""
     sora_base_url: str = "https://api.apiyi.com/v1"
     
     # 请求配置
@@ -107,10 +101,10 @@ class Settings(BaseSettings):
     access_token_expire_days: int = 7  # Token有效期7天
     
     # 阿里云OSS配置
-    oss_access_key_id: str = ""
-    oss_access_key_secret: str = ""
-    oss_endpoint: str = "https://oss-cn-shanghai.aliyuncs.com"  # 华东2上海
-    oss_bucket_name: str = ""
+    oss_access_key_id: str = os.getenv("OSS_ACCESS_KEY_ID", "")
+    oss_access_key_secret: str = os.getenv("OSS_ACCESS_KEY_SECRET", "")
+    oss_endpoint: str = os.getenv("OSS_ENDPOINT", "https://oss-cn-shanghai.aliyuncs.com")  # 华东2上海
+    oss_bucket_name: str = os.getenv("OSS_BUCKET_NAME", "")
     oss_public_read: bool = True  # Bucket为公共读
     oss_url_expire_seconds: int = 3600  # 签名URL有效期（秒）
     oss_max_file_size: int = 50 * 1024 * 1024  # 最大文件大小 50MB

@@ -9,6 +9,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
 from app.api.routes import (
     generation,
@@ -85,6 +86,60 @@ def create_app() -> FastAPI:
     )
     
     # 注册异常处理器
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+        """请求验证错误处理.
+        
+        记录详细的验证错误信息，便于调试。
+        
+        Args:
+            request: 请求对象
+            exc: 验证异常实例
+            
+        Returns:
+            JSON格式的错误响应
+        """
+        logger = get_logger(__name__)
+        errors = exc.errors()
+        
+        # 将错误信息转换为可序列化的格式
+        serializable_errors = []
+        for error in errors:
+            serializable_error = {
+                "loc": list(error.get("loc", [])),
+                "msg": str(error.get("msg", "")),
+                "type": str(error.get("type", ""))
+            }
+            # 处理 ctx 中的异常对象
+            if "ctx" in error and isinstance(error["ctx"], dict):
+                ctx = {}
+                for key, value in error["ctx"].items():
+                    if isinstance(value, Exception):
+                        ctx[key] = str(value)
+                    else:
+                        ctx[key] = value
+                serializable_error["ctx"] = ctx
+            serializable_errors.append(serializable_error)
+        
+        # 格式化错误信息以便于调试
+        error_summary = []
+        for err in serializable_errors:
+            loc = " -> ".join(str(x) for x in err.get("loc", []))
+            msg = err.get("msg", "")
+            error_summary.append(f"{loc}: {msg}")
+        
+        logger.error(
+            f"请求验证失败: {request.url.path}\n详细错误: {'; '.join(error_summary)}"
+        )
+        
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": "请求参数验证失败",
+                "detail": serializable_errors
+            }
+        )
+    
     @app.exception_handler(ApiError)
     async def api_error_handler(request: Request, exc: ApiError) -> JSONResponse:
         """统一API错误处理.

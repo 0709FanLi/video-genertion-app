@@ -56,8 +56,14 @@ pip install fastapi uvicorn python-multipart openai requests
 创建 `.env` 文件：
 
 ```bash
-DASHSCOPE_API_KEY=sk-8b6db5929e244a159deb8e77b08bcf5b
+# 复制示例文件
+cp backend/.env.example backend/.env
+
+# 编辑 .env 文件，填入您的API密钥
+# DASHSCOPE_API_KEY=your-api-key-here
 ```
+
+**重要**：请使用您自己的API密钥，不要使用示例中的占位符！
 
 修改 `backend/main.py` 以使用环境变量：
 
@@ -227,7 +233,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DASHSCOPE_API_KEY=sk-8b6db5929e244a159deb8e77b08bcf5b
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}  # 从环境变量或.env文件读取
     restart: unless-stopped
 
   frontend:
