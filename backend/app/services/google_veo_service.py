@@ -819,6 +819,7 @@ class GoogleVeoService(LoggerMixin):
         Raises:
             ApiError: API调用失败
         """
+        self._ensure_configured()  # 确保已配置
         self.logger.info(
             f"开始单图首帧生成视频: duration={duration}s, "
             f"resolution={resolution}, aspect_ratio={aspect_ratio}"

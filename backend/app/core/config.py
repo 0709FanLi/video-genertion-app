@@ -1,9 +1,11 @@
 """应用配置管理.
 
 使用Pydantic Settings进行配置管理，支持环境变量加载。
+所有敏感信息（API密钥、AccessKey等）必须通过环境变量配置，禁止硬编码。
 """
 
 import os
+from pathlib import Path
 from typing import Optional
 
 from pydantic_settings import BaseSettings
@@ -13,6 +15,7 @@ class Settings(BaseSettings):
     """应用配置类.
     
     所有配置项都可以通过环境变量覆盖。
+    敏感信息（API密钥等）必须通过环境变量配置，禁止硬编码。
     
     Attributes:
         app_name: 应用名称
@@ -22,17 +25,17 @@ class Settings(BaseSettings):
         cors_origins: 跨域允许的源列表
         
         # 阿里云DashScope配置
-        dashscope_api_key: 阿里云DashScope API密钥
+        dashscope_api_key: 阿里云DashScope API密钥（从环境变量读取）
         qwen_base_url: 通义千问API基础URL
         wanx_base_url: 通义万相API基础URL
         
         # 火山引擎即梦配置
-        volc_access_key_id: 火山引擎AccessKeyId
-        volc_secret_access_key: 火山引擎SecretAccessKey
+        volc_access_key_id: 火山引擎AccessKeyId（从环境变量读取）
+        volc_secret_access_key: 火山引擎SecretAccessKey（从环境变量读取）
         volc_base_url: 火山引擎API基础URL
         
         # DeepSeek配置
-        deepseek_api_key: DeepSeek API密钥
+        deepseek_api_key: DeepSeek API密钥（从环境变量读取）
         deepseek_base_url: DeepSeek API基础URL
         
         request_timeout: 请求超时时间（秒）
@@ -56,23 +59,28 @@ class Settings(BaseSettings):
     ]
     
     # 阿里云DashScope配置
-    dashscope_api_key: str = os.getenv("DASHSCOPE_API_KEY", "")
+    # 注意：敏感信息必须通过环境变量配置，禁止硬编码
+    dashscope_api_key: str = ""
     qwen_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     wanx_base_url: str = "https://dashscope.aliyuncs.com/api/v1"
     
     # 火山引擎即梦配置
-    volc_access_key_id: str = os.getenv("VOLC_ACCESS_KEY_ID", "")
-    volc_secret_access_key: str = os.getenv("VOLC_SECRET_ACCESS_KEY", "")
+    # 注意：敏感信息必须通过环境变量配置，禁止硬编码
+    volc_access_key_id: str = ""
+    volc_secret_access_key: str = ""
     volc_base_url: str = "https://visual.volcengineapi.com"
     
     # DeepSeek配置
-    deepseek_api_key: str = os.getenv("DEEPSEEK_API_KEY", "")
+    # 注意：敏感信息必须通过环境变量配置，禁止硬编码
+    deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
     
     # Google Gemini/Veo配置
-    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
+    # 注意：敏感信息必须通过环境变量配置，禁止硬编码
+    gemini_api_key: str = ""
     
     # Sora 2 API配置
+    # 注意：敏感信息必须通过环境变量配置，禁止硬编码
     sora_api_key: str = ""
     sora_base_url: str = "https://api.apiyi.com/v1"
     
@@ -87,24 +95,20 @@ class Settings(BaseSettings):
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     
     # 数据库配置
-    database_url: str = os.getenv(
-        "DATABASE_URL",
-        "sqlite:///./video_generation_app.db"  # 默认使用SQLite
-    )
+    database_url: str = "sqlite:///./video_generation_app.db"  # 默认使用SQLite
     
     # JWT认证配置
-    secret_key: str = os.getenv(
-        "SECRET_KEY",
-        "your-secret-key-change-in-production-please-use-a-long-random-string"
-    )
+    # 注意：生产环境必须通过环境变量设置强密钥
+    secret_key: str = "your-secret-key-change-in-production-please-use-a-long-random-string"
     algorithm: str = "HS256"
     access_token_expire_days: int = 7  # Token有效期7天
     
     # 阿里云OSS配置
-    oss_access_key_id: str = os.getenv("OSS_ACCESS_KEY_ID", "")
-    oss_access_key_secret: str = os.getenv("OSS_ACCESS_KEY_SECRET", "")
-    oss_endpoint: str = os.getenv("OSS_ENDPOINT", "https://oss-cn-shanghai.aliyuncs.com")  # 华东2上海
-    oss_bucket_name: str = os.getenv("OSS_BUCKET_NAME", "")
+    # 注意：敏感信息必须通过环境变量配置，禁止硬编码
+    oss_access_key_id: str = ""
+    oss_access_key_secret: str = ""
+    oss_endpoint: str = "https://oss-cn-shanghai.aliyuncs.com"  # 华东2上海
+    oss_bucket_name: str = ""
     oss_public_read: bool = True  # Bucket为公共读
     oss_url_expire_seconds: int = 3600  # 签名URL有效期（秒）
     oss_max_file_size: int = 50 * 1024 * 1024  # 最大文件大小 50MB
@@ -173,7 +177,8 @@ class Settings(BaseSettings):
     class Config:
         """Pydantic配置."""
         
-        env_file = ".env"
+        # 确保.env文件路径正确（相对于backend目录）
+        env_file = Path(__file__).parent.parent.parent / ".env"
         case_sensitive = False
 
 
