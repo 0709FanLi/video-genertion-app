@@ -299,7 +299,7 @@ class VolcVideoService(LoggerMixin):
                     )
                     raise ApiError(
                         f"提交任务失败: {error_msg}",
-                        details=str(data)
+                        detail=str(data)
                     )
                 
                 task_id = data["data"]["task_id"]
@@ -419,7 +419,7 @@ class VolcVideoService(LoggerMixin):
             elif status in ["not_found", "expired"]:
                 raise ApiError(
                     f"任务{status}: task_id={task_id}",
-                    details=str(result)
+                    detail=str(result)
                 )
             
             # in_queue 或 generating 状态，继续等待
@@ -428,7 +428,7 @@ class VolcVideoService(LoggerMixin):
         
         raise ApiError(
             f"任务超时: 轮询{self.max_poll_attempts}次后仍未完成",
-            details=f"task_id={task_id}"
+            detail=f"task_id={task_id}"
         )
     
     async def _save_video_to_oss(

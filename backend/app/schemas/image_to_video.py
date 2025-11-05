@@ -20,6 +20,7 @@ class VideoModel(str, Enum):
     # 通义万相模型
     WANX_KF2V_FLASH = "wanx-kf2v-flash"  # 万相2.2极速版
     WANX_KF2V_PLUS = "wanx-kf2v-plus"  # 万相2.1专业版
+    WANX_I2V_PREVIEW = "wanx-i2v-preview"  # 万相2.5预览版（图生视频）
     
     # Google Veo 3.1模型
     GOOGLE_VEO_T2V = "google-veo-t2v"  # 文生视频

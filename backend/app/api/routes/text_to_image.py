@@ -17,8 +17,10 @@ from app.core.logging import get_logger
 from app.services.llm_service import llm_service
 from app.services.deepseek_service import deepseek_service
 from app.services.volc_jimeng_service import volc_jimeng_service
+from app.services.wanx_service import wanx_service
 from app.services.wanx_i2i_service import wanx_i2i_service
 from app.services.qwen_image_service import qwen_image_service
+from app.services.gemini_image_service import gemini_image_service
 from app.services.library_service import LibraryService
 from app.api.deps_auth import get_current_user
 from app.models.user import User
@@ -56,7 +58,10 @@ class TextToImageRequest(BaseModel):
     prompt: str = Field(..., description="图片生成提示词", min_length=1)
     model: str = Field(
         default="volc-jimeng",
-        description="生成模型: volc-jimeng / aliyun-wanx / aliyun-wanx-i2i"
+        description=(
+            "生成模型: volc-jimeng / aliyun-wanx / aliyun-wanx-i2i / "
+            "aliyun-qwen-image / google-gemini-image"
+        )
     )
     size: str = Field(default="1024x1024", description="图片尺寸")
     num_images: int = Field(default=1, ge=1, le=4, description="生成图片数量")
@@ -268,6 +273,14 @@ async def generate_image(
             # 返回格式统一为列表
             image_urls = [result["image_url"]]
         
+        elif request.model == "google-gemini-image":
+            # Google Gemini 文生图（纯文本，可多次请求生成多张）
+            image_urls = await gemini_image_service.generate_images(
+                prompt=request.prompt,
+                size=request.size,
+                num_images=request.num_images
+            )
+
         else:
             raise ApiError(
                 message="未实现的模型",
@@ -386,7 +399,9 @@ async def health_check() -> Dict[str, Any]:
             "volc_jimeng": "unknown",
             "deepseek": "unknown",
             "wanx": "unknown",
-            "wanx_i2i": "unknown"
+            "wanx_i2i": "unknown",
+            "qwen_image": "unknown",
+            "gemini_image": "unknown"
         }
     }
     
@@ -404,6 +419,12 @@ async def health_check() -> Dict[str, Any]:
         )
         health_status["services"]["wanx_i2i"] = (
             "healthy" if wanx_i2i_service.api_key else "unhealthy"
+        )
+        health_status["services"]["qwen_image"] = (
+            "healthy" if qwen_image_service.api_key else "unhealthy"
+        )
+        health_status["services"]["gemini_image"] = (
+            "healthy" if gemini_image_service.api_key else "unhealthy"
         )
     except Exception as e:
         logger.error(f"健康检查异常: {e}")

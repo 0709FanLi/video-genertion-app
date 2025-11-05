@@ -26,6 +26,7 @@ from app.schemas.image_to_video import (
 from app.services.qwen_vl_service import qwen_vl_service
 from app.services.volc_video_service import volc_video_service
 from app.services.wanx_kf2v_service import wanx_kf2v_service
+from app.services.wanx_service import wanx_service
 from app.services.google_veo_service import google_veo_service
 from app.services.sora_service import sora_service
 from app.services.oss_service import oss_service
@@ -263,8 +264,12 @@ async def generate_video(
             result = await _generate_volc_video(request, first_frame_url, last_frame_url)
         
         elif request.model in [VideoModel.WANX_KF2V_FLASH, VideoModel.WANX_KF2V_PLUS]:
-            # 通义万相
+            # 通义万相KF2V系列
             result = await _generate_wanx_video(request, first_frame_url, last_frame_url)
+
+        elif request.model == VideoModel.WANX_I2V_PREVIEW:
+            # 通义万相2.5预览版（图生视频）
+            result = await _generate_wanx_i2v_preview_video(request, first_frame_url)
         
         elif request.model in [VideoModel.GOOGLE_VEO_T2V, VideoModel.GOOGLE_VEO_I2V_FIRST, VideoModel.GOOGLE_VEO_I2V_FIRST_TAIL]:
             # Google Veo 3.1
@@ -607,4 +612,81 @@ async def _generate_sora_video(
         duration=duration,
         orig_prompt=request.prompt,
         actual_prompt=request.prompt  # Sora 不修改提示词
+    )
+
+
+async def _generate_wanx_i2v_preview_video(
+    request: ImageToVideoRequest,
+    first_frame_url: Optional[str]
+) -> ImageToVideoResponse:
+    """使用通义万相2.5预览版生成视频.
+
+    Args:
+        request: 视频生成请求
+        first_frame_url: 首帧图片URL
+
+    Returns:
+        视频生成结果
+
+    Raises:
+        ValueError: 参数验证失败
+        ApiError: API调用失败
+    """
+    if not first_frame_url:
+        raise ValueError("通义万相2.5预览版模型需要提供first_frame_url")
+
+    # 调用通义万相2.5预览版服务
+    result = await wanx_service.generate_video(
+        image_url=first_frame_url,
+        prompt=request.prompt
+    )
+
+    logger.info(f"万相2.5预览版响应数据: {result}")
+
+    # 从响应的output字段中提取数据
+    output = result.get("output", {})
+
+    # 从响应中提取视频URL
+    # 根据阿里云API文档，视频URL可能在不同的字段中
+    video_url = ""
+    if "video_result" in output:
+        video_url = output["video_result"]
+    elif "video_url" in output:
+        video_url = output["video_url"]
+    elif "url" in output:
+        video_url = output["url"]
+
+    # 提取任务ID，如果没有则使用空字符串
+    task_id = output.get("task_id", "") or result.get("task_id", "")
+
+    logger.info(f"提取的视频URL: {video_url}, 任务ID: {task_id}")
+
+    # 如果有视频URL，尝试转存到OSS（参考其他万相服务）
+    if video_url:
+        try:
+            # 生成文件名（带时间戳和模型标识）
+            from datetime import datetime
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"wanx_i2v_preview_{timestamp}.mp4"
+
+            # 从临时URL下载并上传到OSS
+            oss_result = await oss_service.upload_from_url(
+                url=video_url,
+                filename=filename,
+                folder="videos/wanx"
+            )
+            permanent_url = oss_result["url"]
+            logger.info(f"视频已转存到OSS: {permanent_url}")
+            video_url = permanent_url
+        except Exception as e:
+            logger.warning(f"视频转存到OSS失败: {e}，使用原始URL")
+
+    # 构建响应
+    return ImageToVideoResponse(
+        video_url=video_url,
+        task_id=task_id,
+        model=request.model.value,
+        duration=5,  # 万相2.5预览版固定5秒
+        orig_prompt=request.prompt,
+        actual_prompt=request.prompt  # 万相2.5预览版不修改提示词
     )

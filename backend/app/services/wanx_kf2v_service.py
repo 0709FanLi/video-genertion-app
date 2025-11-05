@@ -115,7 +115,7 @@ class WanxKf2vService(LoggerMixin):
                 if "output" not in data or "task_id" not in data["output"]:
                     raise DashScopeApiError(
                         "创建任务失败：响应格式错误",
-                        details=str(data)
+                        detail=str(data)
                     )
                 
                 task_id = data["output"]["task_id"]
@@ -127,7 +127,7 @@ class WanxKf2vService(LoggerMixin):
                 self.logger.error(f"通义万相请求失败: {error_detail}")
                 raise DashScopeApiError(
                     "通义万相请求失败",
-                    details=error_detail
+                    detail=error_detail
                 )
             except Exception as e:
                 self.logger.error(f"创建任务异常: {str(e)}")
@@ -162,7 +162,7 @@ class WanxKf2vService(LoggerMixin):
                     if "output" not in data:
                         raise DashScopeApiError(
                             "查询任务失败：响应格式错误",
-                            details=str(data)
+                            detail=str(data)
                         )
                     
                     output = data["output"]
@@ -184,7 +184,7 @@ class WanxKf2vService(LoggerMixin):
                         )
                         raise TaskFailedError(
                             f"任务{task_status}: {error_message}",
-                            details=str(data)
+                            detail=str(data)
                         )
                     
                     # PENDING 或 RUNNING 状态，继续等待
@@ -196,7 +196,7 @@ class WanxKf2vService(LoggerMixin):
                     self.logger.error(f"查询任务状态失败: {error_detail}")
                     raise DashScopeApiError(
                         "查询任务状态失败",
-                        details=error_detail
+                        detail=error_detail
                     )
                 except (TaskFailedError, DashScopeApiError):
                     raise
@@ -206,7 +206,7 @@ class WanxKf2vService(LoggerMixin):
         
         raise TaskTimeoutError(
             f"任务超时: 轮询{self.max_poll_attempts}次后仍未完成",
-            details=f"task_id={task_id}"
+            task_id=task_id
         )
     
     async def _save_video_to_oss(

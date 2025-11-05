@@ -376,7 +376,7 @@ class GoogleVeoService(LoggerMixin):
             if elapsed_time >= self.max_wait_time:
                 raise ApiError(
                     "视频扩展超时",
-                    details=f"等待超过{self.max_wait_time}秒"
+                    detail=f"等待超过{self.max_wait_time}秒"
                 )
             
             self.logger.info(

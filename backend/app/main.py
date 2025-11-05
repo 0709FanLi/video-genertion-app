@@ -77,12 +77,30 @@ def create_app() -> FastAPI:
     )
     
     # 配置CORS
+    # 支持通过环境变量CORS_ORIGINS设置（逗号分隔）
+    # 检查环境变量，如果设置了CORS_ORIGINS则使用它
+    import os
+    cors_origins_env = os.getenv("CORS_ORIGINS")
+    if cors_origins_env:
+        if cors_origins_env.strip() == "*":
+            cors_origins = ["*"]
+        else:
+            cors_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+    else:
+        cors_origins = settings.cors_origins
+    
+    # 开发环境：如果debug模式且origins列表包含"*"，允许所有源
+    if settings.debug and "*" in cors_origins:
+        logger = get_logger(__name__)
+        logger.warning("⚠️ CORS配置为允许所有源（开发模式）")
+    
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins,
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["*"],  # 暴露所有响应头
     )
     
     # 注册异常处理器

@@ -1,0 +1,122 @@
+Gemini 文生图接口对接指南
+========================
+
+1. 目标与范围
+--------------
+本指南用于帮助 `video_generation_app` 后端快速集成 Google Gemini 图片生成能力，覆盖纯文本生成图片、图片编辑以及关键配置项，确保实现与现有服务（如 Veo 视频生成）一致的分层架构、日志与安全管控。
+
+2. 接入前准备
+--------------
+- 申请并妥善保管 Gemini API Key。生产环境务必通过环境变量注入，例如 `GEMINI_API_KEY`。
+- 安装官方 SDK：`pip install google-genai`（Python 服务）或 `npm install @google/genai`（Node 侧工具）。
+- 若服务运行在企业网络，需要确认出口能够访问 `https://generativelanguage.googleapis.com/`。
+
+3. 基础调用流程（Python 示例）
+--------------------------------
+```python
+from google import genai
+from google.genai import types
+from PIL import Image
+from io import BytesIO
+
+client = genai.Client()
+
+prompt = 'Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme'
+
+response = client.models.generate_content(
+    model='gemini-2.5-flash-image',
+    contents=[prompt],
+)
+
+for part in response.candidates[0].content.parts:
+    if part.text:
+        print(part.text)
+    elif part.inline_data:
+        image = Image.open(BytesIO(part.inline_data.data))
+        image.save('generated_image.png')
+```
+关键要点：
+- `contents` 数组可混合文本和图片输入，文本需为字符串，图片需转换为 SDK 接受的格式。
+- 输出 `part.inline_data.data` 为 Base64 字节，需要解码后保存为图片文件。
+- 根据项目日志规范，在调用前后记录 `prompt` 摘要、模型名称和响应耗时，避免记录敏感数据。
+
+4. 图片编辑（图文混合）
+----------------------
+```python
+from google import genai
+from PIL import Image
+from io import BytesIO
+
+client = genai.Client()
+
+prompt = (
+    'Create a picture of my cat eating a nano-banana in a '
+    'fancy restaurant under the Gemini constellation'
+)
+
+image = Image.open('/path/to/cat_image.png')
+
+response = client.models.generate_content(
+    model='gemini-2.5-flash-image',
+    contents=[prompt, image],
+)
+
+for part in response.candidates[0].content.parts:
+    if part.inline_data:
+        edited = Image.open(BytesIO(part.inline_data.data))
+        edited.save('edited_image.png')
+```
+落地建议：
+- 在服务层对上传图片做权限与版权校验，满足公司安全合规要求。
+- 结合现有对象存储（OSS/S3）方案，输出图片优先上传云存储，仅在缓存目录保留临时文件。
+
+5. 可选配置
+------------
+- **输出类型**：若仅需图片，可在 `config` 中设置 `response_modalities=['Image']`。
+- **宽高比**：通过 `image_config.aspect_ratio` 控制生成图片尺寸，例如 `16:9`、`1:1` 等。
+
+常用宽高比对照表：
+
+| 宽高比 | 生成分辨率 | Token 计数 |
+|--------|------------|-------------|
+| 1:1    | 1024x1024  | 1290        |
+| 2:3    | 832x1248   | 1290        |
+| 3:2    | 1248x832   | 1290        |
+| 3:4    | 864x1184   | 1290        |
+| 4:3    | 1184x864   | 1290        |
+| 4:5    | 896x1152   | 1290        |
+| 5:4    | 1152x896   | 1290        |
+| 9:16   | 768x1344   | 1290        |
+| 16:9   | 1344x768   | 1290        |
+| 21:9   | 1536x672   | 1290        |
+
+6. 提示工程最佳实践
+------------------
+- 叙述完整场景，不仅列出关键词，提升模型理解度。
+- 明确定义风格、镜头语言、光线和构图来获得一致视觉效果。
+- 对于贴纸、徽标类需求说明透明背景、字体风格等细节。
+- 分步骤描述复杂场景，并使用迭代对话微调结果。
+- 使用语义负向提示显式排除不需要的元素。
+- 控制生成文本内容时，先生成文本再请求嵌入到图片中。
+
+7. 使用限制与合规要点
+--------------------
+- 支持语言以英语、西班牙语（墨西哥）、日语、中文（中国）、印地语效果最佳。
+- 输入图片数建议不超过 3 张，暂不支持音频或视频输入。
+- 欧洲经济区、瑞士和英国环境禁止上传儿童图片。
+- 所有输出带有 SynthID 水印，需遵守 Google 使用限制政策。
+- 记录费用：`gemini-2.5-flash-image` 按 Token 计费，约 1290 Token/图，折算成本约 30 美元 / 百万 Token。
+
+8. 服务集成建议
+----------------
+- 在 `services` 层封装 Gemini 访问逻辑，暴露异步方法供 FastAPI 路由调用。
+- 使用统一的凭证加载与重试机制（可参考现有 `google_veo_service.py`），并加入速率限制监控。
+- 将生成请求与结果持久化（数据库或对象存储），便于审计与追溯。
+- 为关键流程补充单元测试：
+  - Happy path：文本生成图片成功。
+  - Error path：API Key 缺失、HTTP 4xx/5xx 处理。
+
+参考资料
+--------
+- Google 官方文档：《使用 Gemini 生成图片》https://ai.google.dev/gemini-api/docs/image-generation?hl=zh-cn
+

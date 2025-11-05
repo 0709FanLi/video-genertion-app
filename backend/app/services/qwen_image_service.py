@@ -130,7 +130,7 @@ class QwenImageService(LoggerMixin):
                     self.logger.error(f"生成图片失败: {error_message}, 详情: {data}")
                     raise ApiError(
                         f"生成图片失败: {error_message}",
-                        details=str(data)
+                        detail=str(data)
                     )
                 
                 # 提取图片URL
@@ -138,7 +138,7 @@ class QwenImageService(LoggerMixin):
                 if not choices or "message" not in choices[0]:
                     raise ApiError(
                         "响应格式错误：缺少choices或message",
-                        details=str(data)
+                        detail=str(data)
                     )
                 
                 message = choices[0]["message"]
@@ -146,7 +146,7 @@ class QwenImageService(LoggerMixin):
                 if not content or "image" not in content[0]:
                     raise ApiError(
                         "响应格式错误：缺少image字段",
-                        details=str(data)
+                        detail=str(data)
                     )
                 
                 temp_image_url = content[0]["image"]

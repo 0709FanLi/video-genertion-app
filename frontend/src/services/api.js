@@ -6,7 +6,19 @@
 import axios from 'axios';
 
 // API基础URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const resolveDefaultBaseUrl = () => {
+  if (import.meta.env.MODE === 'development') {
+    return 'http://localhost:8000';
+  }
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+
+  return 'http://localhost:8000';
+};
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || resolveDefaultBaseUrl();
 
 // 创建axios实例
 const apiClient = axios.create({

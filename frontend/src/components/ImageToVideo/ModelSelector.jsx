@@ -78,6 +78,15 @@ const ModelSelector = () => {
       needFirstFrame: true
     },
     {
+      value: 'wanx-i2v-preview',
+      label: '通义万相 - 2.5预览版',
+      description: '万相2.5预览版，图生视频，720P，5s',
+      icon: <ThunderboltOutlined />,
+      tags: ['新模型', '单图'],
+      needLastFrame: false,
+      needFirstFrame: true
+    },
+    {
       value: 'google-veo-t2v',
       label: 'Google Veo - 文生视频',
       description: 'Veo 3.1纯文本生成视频，720p/1080p，4s/6s/8s，16:9/9:16',
@@ -175,7 +184,7 @@ const ModelSelector = () => {
   
   // 判断模型类型
   const isVolcengine = selectedModel.startsWith('volc-');
-  const isWanxiang = selectedModel.startsWith('wanx');
+  const isWanxiang = selectedModel.startsWith('wanx') || selectedModel === 'wanx-i2v-preview';
   const isGoogleVeo = selectedModel.startsWith('google-veo');
   const isSoraV2 = selectedModel.startsWith('sora-v2');
   const isTextToVideo = selectedModel === 'volc-t2v';
@@ -246,6 +255,12 @@ const ModelSelector = () => {
         enabled: false,
         hint: '📌 当前模型固定使用 720P 分辨率'
       };
+    } else if (selectedModel === 'wanx-i2v-preview') {
+      return {
+        options: [{ value: '720P', label: '720P', desc: '约92万像素' }],
+        enabled: false,
+        hint: '📌 当前模型固定使用 720P 分辨率'
+      };
     } else {
       // 火山引擎固定1080P
       return {
@@ -278,6 +293,7 @@ const ModelSelector = () => {
       setDuration(6);
     }
   }, [selectedModel, duration, isWanxiang, isGoogleVeo, setDuration]);
+
   
   // 自动调整长宽比（Google Veo切换时）
   React.useEffect(() => {

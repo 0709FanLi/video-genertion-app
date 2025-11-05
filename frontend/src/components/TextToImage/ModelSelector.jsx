@@ -106,6 +106,11 @@ const ModelSelector = () => {
                   支持最多 {maxReferenceImages} 张参考图
                 </div>
               )}
+              {currentModel.description && (
+                <div style={{ color: '#595959', lineHeight: 1.4 }}>
+                  {currentModel.description}
+                </div>
+              )}
             </Space>
           </div>
         )}

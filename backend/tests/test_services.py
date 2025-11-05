@@ -3,12 +3,15 @@
 测试LLMService和WanxService的核心功能。
 """
 
+import base64
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
 
 from app.services.llm_service import LLMService
 from app.services.wanx_service import WanxService
-from app.exceptions import DashScopeApiError, TaskFailedError
+from app.services.gemini_image_service import GeminiImageService
+from app.exceptions import ApiError, DashScopeApiError, TaskFailedError
 
 
 class TestLLMService:
@@ -144,4 +147,76 @@ class TestWanxService:
         service = WanxService()
         with pytest.raises(TaskFailedError):
             await service._poll_task("test-task-123", max_attempts=5)
+
+
+class TestGeminiImageService:
+    """GeminiImageService测试类."""
+
+    @pytest.mark.asyncio
+    @patch("app.services.gemini_image_service.httpx.AsyncClient")
+    async def test_generate_images_success(self, mock_client):
+        """测试Gemini文生图生成成功场景."""
+
+        mock_image_bytes = b"test-image"
+        encoded = base64.b64encode(mock_image_bytes).decode("utf-8")
+
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "inlineData": {
+                                    "data": encoded,
+                                    "mimeType": "image/png"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+        mock_response.raise_for_status.return_value = None
+
+        mock_client_instance = AsyncMock()
+        mock_client_instance.post.return_value = mock_response
+        mock_client.return_value.__aenter__.return_value = mock_client_instance
+
+        service = GeminiImageService()
+        service.api_key = "test-key"
+
+        with patch.object(
+            GeminiImageService,
+            "_save_image_to_oss",
+            return_value="https://example.com/image.png"
+        ) as mock_save:
+            result = await service.generate_images(
+                prompt="A test prompt",
+                size="1024x1024",
+                num_images=1
+            )
+
+        assert result == ["https://example.com/image.png"]
+        mock_client_instance.post.assert_called_once()
+        mock_save.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("app.services.gemini_image_service.httpx.AsyncClient")
+    async def test_generate_images_invalid_response(self, mock_client):
+        """测试Gemini文生图响应格式错误场景."""
+
+        mock_response = Mock()
+        mock_response.json.return_value = {"candidates": []}
+        mock_response.raise_for_status.return_value = None
+
+        mock_client_instance = AsyncMock()
+        mock_client_instance.post.return_value = mock_response
+        mock_client.return_value.__aenter__.return_value = mock_client_instance
+
+        service = GeminiImageService()
+        service.api_key = "test-key"
+
+        with pytest.raises(ApiError):
+            await service.generate_images(prompt="test prompt")
 
