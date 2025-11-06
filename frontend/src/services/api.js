@@ -20,6 +20,9 @@ const resolveDefaultBaseUrl = () => {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || resolveDefaultBaseUrl();
 
+// 导出API_BASE_URL供其他模块使用（用于fetch等场景）
+export { API_BASE_URL };
+
 // 创建axios实例
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

@@ -5,6 +5,7 @@
  */
 
 import { create } from 'zustand';
+import { API_BASE_URL } from '../services/api';
 
 const useLibraryStore = create((set, get) => ({
   // ========== 状态 ==========
@@ -116,7 +117,7 @@ const useLibraryStore = create((set, get) => ({
       }
       
       const response = await fetch(
-        `http://localhost:8000/api/library/prompts?${params}`,
+        `${API_BASE_URL}/api/library/prompts?${params}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -174,7 +175,7 @@ const useLibraryStore = create((set, get) => ({
       }
       
       const response = await fetch(
-        `http://localhost:8000/api/library/images?${params}`,
+        `${API_BASE_URL}/api/library/images?${params}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -236,7 +237,7 @@ const useLibraryStore = create((set, get) => ({
       }
       
       const response = await fetch(
-        `http://localhost:8000/api/library/videos?${params}`,
+        `${API_BASE_URL}/api/library/videos?${params}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,

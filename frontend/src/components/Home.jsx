@@ -66,7 +66,7 @@ const Home = () => {
               marginBottom: 16
             }}
           >
-            🎨 AI创意生成平台
+            🎨 AI创意生成平台0.2
           </Title>
           <Paragraph 
             style={{ 

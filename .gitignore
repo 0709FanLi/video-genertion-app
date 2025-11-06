@@ -113,3 +113,8 @@ yarn.lock.backup
 # 部署配置文件（包含敏感信息）
 deploy-config.json
 !deploy-config.example.json
+backend/.env.example
+backend/.env.example
+deploy-remote.sh
+deploy.sh
+quick-deploy.sh

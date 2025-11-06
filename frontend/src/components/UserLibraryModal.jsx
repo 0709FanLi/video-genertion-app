@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Tabs, Card, Row, Col, Spin, Empty, Input, Select, Tag, Image, Space, Button, Typography, Pagination, message } from 'antd';
 import { SearchOutlined, PictureOutlined, VideoCameraOutlined, FileTextOutlined, DownloadOutlined, EyeOutlined, CheckOutlined } from '@ant-design/icons';
-import { libraryAPI } from '../services/api';
+import { libraryAPI, API_BASE_URL } from '../services/api';
 import './UserLibraryModal.css';
 
 const { Search } = Input;
@@ -239,8 +239,7 @@ const UserLibraryModal = ({ open, onClose, onSelectImage, onSelectVideo, onSelec
       message.loading('正在下载...', 0);
       
       // 使用后端代理下载接口，避免CORS问题
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-      const downloadUrl = `${apiBaseUrl}/api/files/download?url=${encodeURIComponent(url)}`;
+      const downloadUrl = `${API_BASE_URL}/api/files/download?url=${encodeURIComponent(url)}`;
       
       const response = await fetch(downloadUrl);
       if (!response.ok) {

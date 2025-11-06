@@ -1,0 +1,16 @@
+{
+  "name": "video-generation-app-e2e-tests",
+  "version": "1.0.0",
+  "description": "E2E tests for video generation app deployment",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:deployment": "node test-deployment.js",
+    "test:report": "playwright show-report test-results/html-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "playwright": "^1.56.1"
+  }
+}

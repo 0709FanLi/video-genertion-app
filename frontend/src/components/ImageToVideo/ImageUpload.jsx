@@ -12,7 +12,7 @@ import {
   FolderOutlined
 } from '@ant-design/icons';
 import useVideoStore from '../../store/videoStore';
-import { fileUploadAPI } from '../../services/api';
+import { fileUploadAPI, API_BASE_URL } from '../../services/api';
 import UserLibraryModal from '../UserLibraryModal';
 
 const ImageUpload = () => {
@@ -80,8 +80,7 @@ const ImageUpload = () => {
   const imageUrlToBase64 = async (url) => {
     try {
       // 使用后端代理下载接口
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-      const downloadUrl = `${apiBaseUrl}/api/files/download?url=${encodeURIComponent(url)}`;
+      const downloadUrl = `${API_BASE_URL}/api/files/download?url=${encodeURIComponent(url)}`;
       
       const response = await fetch(downloadUrl);
       if (!response.ok) {
